@@ -50,6 +50,20 @@
 		<ExtraCommands>
 			<Add after="XCOPY $(#sdl2)\bin\*.dll $(TARGET_OUTPUT_DIR) /D /Y" />
 		</ExtraCommands>
+		<Unit filename="BMPManipulator/bmp_functions.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="BMPManipulator/bmp_functions.h" />
+		<Unit filename="BMPManipulator/constantes.h" />
+		<Unit filename="BMPManipulator/estructuras.h" />
+		<Unit filename="BMPManipulator/funciones_estudiante.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="BMPManipulator/funciones_estudiante.h" />
+		<Unit filename="UI/clay.h" />
+		<Unit filename="UI/clay_renderer_SDL2.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>

@@ -446,3 +446,64 @@
 1716511259 c:\users\zapatasantiago\documents\cprojects\sdltest\bmpmanipulator\funciones_estudiante.h
 	"constantes.h"
 
+1738713768 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\funciones_estudiante.c
+	"constantes.h"
+
+1738713768 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\constantes.h
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<ctype.h>
+	<stdbool.h>
+	"estructuras.h"
+	"funciones_estudiante.h"
+
+1738713768 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\estructuras.h
+
+1738713768 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\funciones_estudiante.h
+	"constantes.h"
+
+1738737742 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\main.c
+	"UI/clay.h"
+	"UI/clay_renderer_SDL2.c"
+	"BMPManipulator/bmp_functions.h"
+	<SDL.h>
+	<SDL_ttf.h>
+	<stdbool.h>
+	<stdint.h>
+	<stdlib.h>
+	<stdio.h>
+
+1738728840 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay.h
+	"clay.h"
+	<stdint.h>
+	<stdbool.h>
+	<stddef.h>
+	<emmintrin.h>
+	<arm_neon.h>
+
+1738737031 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
+	"clay.h"
+	<SDL.h>
+	<SDL_ttf.h>
+	<SDL_image.h>
+	<stdio.h>
+
+1738737031 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
+	"clay.h"
+	<SDL.h>
+	<SDL_ttf.h>
+	<SDL_image.h>
+	<stdio.h>
+
+1738732880 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.c
+	"bmp_functions.h"
+
+1738733910 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.h
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<ctype.h>
+	<stdbool.h>
+	<stdint.h>
+

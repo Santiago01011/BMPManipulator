@@ -2,7 +2,7 @@
 #include "UI/clay.h"
 #include "UI/clay_renderer_SDL2.c"
 
-#include "BMPManipulator/funciones_estudiante.h"
+#include "BMPManipulator/bmp_functions.h"
 
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -21,14 +21,13 @@ const Clay_Color COLOR_WHITE = { 255, 255, 255, 255};
 SDL_Surface *sample_image;
 SDL_Window *window = NULL;
 
+
 void RenderHeaderButton(Clay_String text) {
-    CLAY(
-        CLAY_LAYOUT({ .padding = { 12, 12, 2, 2 }}),
-        CLAY_RECTANGLE({
-            .color = { 140, 140, 140, 255 },
-            .cornerRadius = 5
-        })
-    ) {
+    CLAY({
+        .layout = { .padding = { 12, 12, 2, 2 }},
+        .backgroundColor = { 140, 140, 140, 255 },
+        .cornerRadius = CLAY_CORNER_RADIUS(5)
+    }) {
         CLAY_TEXT(text, CLAY_TEXT_CONFIG({
             .fontId = FONT_ID_BODY_16,
             .fontSize = 16,
@@ -38,34 +37,38 @@ void RenderHeaderButton(Clay_String text) {
 }
 
 void RenderHeader() {
-    CLAY(
-        CLAY_ID("HeaderBar"),
-        CLAY_RECTANGLE({ .color = { 100, 41, 51, 255 } }), // Dark background
-        CLAY_LAYOUT({
+    CLAY({
+        .id = CLAY_ID("HeaderBar"),
+        .layout = {
             .sizing = { .height = CLAY_SIZING_FIXED(BOX_H), .width = CLAY_SIZING_GROW(0) },
-            .padding = { BOX_PADD },
+            .padding = CLAY_PADDING_ALL(BOX_PADD),
             .childGap = BOX_PADD,
-            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER }
-        })
-    ) {
+            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
+        },
+        .backgroundColor = { 100, 41, 51, 255 }
+
+    }) {
         RenderHeaderButton(CLAY_STRING("File"));
         RenderHeaderButton(CLAY_STRING("Edit"));
     }
+
 }
 
 void RenderCentralPanel() {
     int mainWwidth, mainWheight, scaled_width, scaled_height;
     SDL_GetWindowSize(window, &mainWwidth, &mainWheight);
-    CLAY(
-        CLAY_ID("CentralPanel"),
-        CLAY_RECTANGLE({ .color = { 0, 0, 0, 0 } }),
-        CLAY_LAYOUT({
+
+    CLAY({ //new implementation of Clay
+        .id = CLAY_ID("CentralPanel"),
+        .backgroundColor = {0, 0, 0, 0},
+        .layout = {
             .sizing = { .width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_GROW(0) },
-            .padding = { BOX_PADD },
+            .padding = CLAY_PADDING_ALL(BOX_PADD),
             .childGap = BOX_PADD,
             .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
-        })
-    ) {
+        }
+
+    }) {
         if (sample_image) {
             int img_width = sample_image->w;
             int img_height = sample_image->h;
@@ -88,15 +91,18 @@ void RenderCentralPanel() {
                 scaled_height = img_height;
             }
             // Render the scaled image
-            CLAY(
-                CLAY_LAYOUT({
+            CLAY({
+                .layout = {
                     .sizing = {
                         .width = CLAY_SIZING_FIXED(scaled_width),
                         .height = CLAY_SIZING_FIXED(scaled_height)
                     }
-                }),
-                CLAY_IMAGE({ sample_image, scaled_width, scaled_height })
-            ) {}
+                },
+                .image = {
+                    .sourceDimensions = {scaled_width, scaled_height},
+                    .imageData = sample_image,
+                }
+            }) {}
         } else {
             printf("No image to render\n");
         }
@@ -106,16 +112,16 @@ void RenderCentralPanel() {
 
 
 void RenderEditButtons() {
-    CLAY(
-        CLAY_ID("EditButtons"),
-        CLAY_RECTANGLE({ .color = { 100, 41, 51, 255 } }),
-        CLAY_LAYOUT({
+    CLAY({
+         .id = CLAY_ID("EditsButtons"),
+         .backgroundColor = {100, 41, 51 ,255},
+         .layout = {
             .sizing = { .height = CLAY_SIZING_FIXED(BOX_H), .width = CLAY_SIZING_GROW(0) },
             .padding = { BOX_PADD },
             .childGap = BOX_PADD,
             .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
-        })
-    ) {
+         }
+    }) {
         RenderHeaderButton(CLAY_STRING("Cut"));
         RenderHeaderButton(CLAY_STRING("Rotate"));
         RenderHeaderButton(CLAY_STRING("Change RGB"));
@@ -130,17 +136,16 @@ static Clay_RenderCommandArray CreateLayout() {
         .width = CLAY_SIZING_GROW(0),
         .height = CLAY_SIZING_GROW(0)
     };
-
-    CLAY(
-        CLAY_ID("OuterContainer"),
-        CLAY_RECTANGLE({ .color = { 43, 41, 51, 255 } }), // Dark background
-        CLAY_LAYOUT({
+    CLAY({
+         .id = CLAY_ID("OuterContainer"),
+         .backgroundColor = {43, 41, 51, 255},
+         .layout = {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
             .sizing = layoutExpand,
             .padding = CLAY_PADDING_ALL(10),
             .childGap = 10
-        })
-    ) {
+         }
+    }) {
         // Header
         RenderHeader();
 
@@ -184,12 +189,29 @@ int main(int argc, char *argv[]) {
         .fontId = FONT_ID_BODY_16,
         .font = font,
     };
-
-    sample_image = IMG_Load("resources/test_org.bmp");
-    if (!sample_image) {
-        fprintf(stderr, "Error: could not load image: %s\n", IMG_GetError());
-        return 1;
+    BMPMetadata metadata;
+    unsigned char* originalImage = NULL;
+    if(loadImageBMPM("resources/test_org.bmp", &metadata, &originalImage)){
+        printf("Image width: %d, image height: %d", metadata.width, metadata.height);
+        int pitch = ((metadata.width * 3 + 3) / 4) * 4;
+        sample_image = SDL_CreateRGBSurfaceFrom(
+            originalImage,
+            metadata.width,
+            metadata.height,
+            metadata.bitsPerPixel,
+            pitch, // Negative pitch (flip vertically)
+            0xFF0000,  // Red mask
+            0x00FF00,  // Green mask
+            0x0000FF,  // Blue mask
+            0           // Alpha mask
+        );
+        if(!sample_image){
+            fprintf(stderr, "Error: could not create surface from image: %s\n", SDL_GetError());
+            free(originalImage);
+            return 1;
+        }
     }
+
 
     SDL_Renderer *renderer = NULL;
     if (SDL_CreateWindowAndRenderer(800, 600, SDL_WINDOW_RESIZABLE, &window, &renderer) < 0) {
@@ -205,7 +227,7 @@ int main(int argc, char *argv[]) {
     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
     Clay_Initialize(clayMemory, (Clay_Dimensions) { (float)windowWidth, (float)windowHeight }, (Clay_ErrorHandler) { HandleClayErrors });
 
-    Clay_SetMeasureTextFunction(SDL2_MeasureText, (uintptr_t)&fonts);
+    Clay_SetMeasureTextFunction(SDL2_MeasureText, &fonts);
 
     Uint64 NOW = SDL_GetPerformanceCounter();
     Uint64 LAST = 0;
@@ -271,6 +293,9 @@ quit:
     }
     if (memoryBuffer) {
         free(memoryBuffer);
+    }
+    if(originalImage) {
+        free(originalImage);
     }
     IMG_Quit();
     TTF_Quit();
