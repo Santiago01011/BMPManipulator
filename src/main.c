@@ -12,25 +12,94 @@
 #include <stdio.h>
 
 
-#define BOX_PADD 10
+#include "UI/ui.c"
+#define BOX_PADD 20
 #define BOX_H 40
 
 
-const int FONT_ID_BODY_16 = 0;
-const Clay_Color COLOR_WHITE = { 255, 255, 255, 255};
+const int FontIdBody16 = 0;
+const Clay_Color ColorWhite = { 255, 255, 255, 255};
+const Clay_Color FullBackgroundColor = (Clay_Color){39, 54, 61 ,255}; //rgb(39, 54, 61)
+const Clay_Color BackgroundColor = (Clay_Color){47, 62, 70 ,255}; //rgb(47, 62, 70)
+const Clay_Color ButtonColor = (Clay_Color){53, 79, 82, 255}; //rgb(53, 79, 82)
+const Clay_Color ButtonHoverColor = (Clay_Color){82, 121, 111, 100}; // rgb(82, 121, 111)
+
+typedef enum {
+    ACTION_CUT,
+    ACTION_ROTATE,
+    ACTION_CHANGE_RGB,
+    ACTION_SCALE,
+    ACTION_GRAYSCALE,
+    ACTION_NONE
+} ButtonAction;
+
+unsigned char* originalImage = NULL;
+BMPMetadata metadata;
 SDL_Surface *sample_image;
 SDL_Window *window = NULL;
 
+void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t userData) {
+    if (pointerData.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ButtonAction action = (ButtonAction)userData;
 
-void RenderHeaderButton(Clay_String text) {
+        switch (action) {
+            case ACTION_CUT:
+                printf("Cut function called!\n");
+                // Call cut function here
+                break;
+
+            case ACTION_ROTATE:
+                printf("Rotate function called!\n");
+                // Call rotation function here
+                break;
+
+            case ACTION_CHANGE_RGB:
+                printf("Change RGB function called!\n");
+                // Call RGB adjustment function here
+                break;
+
+            case ACTION_SCALE:
+                printf("Scale function called!\n");
+                // Call scaling function here
+                break;
+
+            case ACTION_GRAYSCALE:
+                printf("Applying grayscale...\n");
+                // Call gray scaling function here
+                grayScaleBMPM(&metadata, originalImage);
+                break;
+
+            default:
+                printf("Unknown action\n");
+                break;
+        }
+    }
+}
+
+void RenderButton(Clay_String text, ButtonAction action) {
+
     CLAY({
-        .layout = { .padding = { 12, 12, 2, 2 }},
-        .backgroundColor = { 140, 140, 140, 255 },
-        .cornerRadius = CLAY_CORNER_RADIUS(5)
+        .layout = {
+            .padding = {BOX_PADD, BOX_PADD, 0, 0},
+            .sizing = {.height = 25},
+            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER}
+        },
+        .backgroundColor = Clay_Hovered() ? ButtonHoverColor : ButtonColor
     }) {
+        Clay_OnHover(HandleButtonClick, (intptr_t)action); // Attach event handler
         CLAY_TEXT(text, CLAY_TEXT_CONFIG({
-            .fontId = FONT_ID_BODY_16,
-            .fontSize = 16,
+            .fontId = FontIdBody16,
+            .fontSize = 12,
+            .textColor = ColorWhite
+        }));
+    }
+}
+
+void RenderDropdownMenuItem(Clay_String text) {
+    CLAY({.layout = { .padding = CLAY_PADDING_ALL(BOX_PADD)}}) {
+        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
+            .fontId = FontIdBody16,
+            .fontSize = BOX_PADD,
             .textColor = { 255, 255, 255, 255 }
         }));
     }
@@ -43,13 +112,13 @@ void RenderHeader() {
             .sizing = { .height = CLAY_SIZING_FIXED(BOX_H), .width = CLAY_SIZING_GROW(0) },
             .padding = CLAY_PADDING_ALL(BOX_PADD),
             .childGap = BOX_PADD,
-            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
+            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER}
         },
-        .backgroundColor = { 100, 41, 51, 255 }
+        .backgroundColor = BackgroundColor
 
     }) {
-        RenderHeaderButton(CLAY_STRING("File"));
-        RenderHeaderButton(CLAY_STRING("Edit"));
+        RenderButton(CLAY_STRING("File"), ACTION_NONE);
+        RenderButton(CLAY_STRING("Edit"), ACTION_NONE);
     }
 
 }
@@ -60,11 +129,11 @@ void RenderCentralPanel() {
 
     CLAY({ //new implementation of Clay
         .id = CLAY_ID("CentralPanel"),
-        .backgroundColor = {0, 0, 0, 0},
+        .backgroundColor = BackgroundColor,
         .layout = {
             .sizing = { .width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_GROW(0) },
-            .padding = CLAY_PADDING_ALL(BOX_PADD),
-            .childGap = BOX_PADD,
+            .padding = CLAY_PADDING_ALL(0),
+            .childGap = 0,
             .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
         }
 
@@ -74,8 +143,8 @@ void RenderCentralPanel() {
             int img_height = sample_image->h;
 
             // Get the available space in the parent container
-            int available_width = mainWwidth - (BOX_PADD * 2);
-            int available_height = mainWheight - (BOX_PADD * 4) - (BOX_H * 2);
+            int available_width = mainWwidth - BOX_PADD;
+            int available_height = mainWheight - (BOX_PADD * 2) - (BOX_H * 2);
 
             // Calculate the scaling factor to fit the image within the available space
             float scale_width = (float)available_width / (float)img_width;
@@ -114,19 +183,20 @@ void RenderCentralPanel() {
 void RenderEditButtons() {
     CLAY({
          .id = CLAY_ID("EditsButtons"),
-         .backgroundColor = {100, 41, 51 ,255},
+         .backgroundColor = BackgroundColor,
          .layout = {
             .sizing = { .height = CLAY_SIZING_FIXED(BOX_H), .width = CLAY_SIZING_GROW(0) },
-            .padding = { BOX_PADD },
+            .padding = CLAY_PADDING_ALL(BOX_PADD),
             .childGap = BOX_PADD,
             .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
-         }
+         },
+            .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f} //this don't work
     }) {
-        RenderHeaderButton(CLAY_STRING("Cut"));
-        RenderHeaderButton(CLAY_STRING("Rotate"));
-        RenderHeaderButton(CLAY_STRING("Change RGB"));
-        RenderHeaderButton(CLAY_STRING("Scale"));
-        RenderHeaderButton(CLAY_STRING("B&W"));
+        RenderButton(CLAY_STRING("Cut"), ACTION_CUT);
+        RenderButton(CLAY_STRING("Rotate"), ACTION_ROTATE);
+        RenderButton(CLAY_STRING("Change RGB"), ACTION_CHANGE_RGB);
+        RenderButton(CLAY_STRING("Scale"), ACTION_SCALE);
+        RenderButton(CLAY_STRING("GrayScale"), ACTION_GRAYSCALE);
     }
 }
 
@@ -138,12 +208,12 @@ static Clay_RenderCommandArray CreateLayout() {
     };
     CLAY({
          .id = CLAY_ID("OuterContainer"),
-         .backgroundColor = {43, 41, 51, 255},
+         .backgroundColor = FullBackgroundColor,
          .layout = {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
             .sizing = layoutExpand,
-            .padding = CLAY_PADDING_ALL(10),
-            .childGap = 10
+            .padding = {5, 5, 5, 5},
+            .childGap = 5
          }
     }) {
         // Header
@@ -185,21 +255,20 @@ int main(int argc, char *argv[]) {
 
     SDL2_Font fonts[1] = {};
 
-    fonts[FONT_ID_BODY_16] = (SDL2_Font) {
-        .fontId = FONT_ID_BODY_16,
+    fonts[FontIdBody16] = (SDL2_Font) {
+        .fontId = FontIdBody16,
         .font = font,
     };
-    BMPMetadata metadata;
-    unsigned char* originalImage = NULL;
-    if(loadImageBMPM("resources/test_org.bmp", &metadata, &originalImage)){
-        printf("Image width: %d, image height: %d", metadata.width, metadata.height);
+    if(loadImageBMPM("resources/miku.bmp", &metadata, &originalImage)){
+        //printf("Image width: %d, image height: %d\n", metadata.width, metadata.height);
         int pitch = ((metadata.width * 3 + 3) / 4) * 4;
+        printf("Pitch: %d\n", pitch);
         sample_image = SDL_CreateRGBSurfaceFrom(
             originalImage,
             metadata.width,
             metadata.height,
             metadata.bitsPerPixel,
-            pitch, // Negative pitch (flip vertically)
+            pitch,
             0xFF0000,  // Red mask
             0x00FF00,  // Green mask
             0x0000FF,  // Blue mask
@@ -210,11 +279,13 @@ int main(int argc, char *argv[]) {
             free(originalImage);
             return 1;
         }
+    } else {
+        system("pause");
     }
-
+    //sample_image = IMG_Load("resources/test_org.bmp");
 
     SDL_Renderer *renderer = NULL;
-    if (SDL_CreateWindowAndRenderer(800, 600, SDL_WINDOW_RESIZABLE, &window, &renderer) < 0) {
+    if (SDL_CreateWindowAndRenderer(600, 400, SDL_WINDOW_RESIZABLE, &window, &renderer) < 0) {
         fprintf(stderr, "Error: could not create window and renderer: %s", SDL_GetError());
     }
 
@@ -281,8 +352,8 @@ int main(int argc, char *argv[]) {
 
         SDL_RenderPresent(renderer);
 
-        // Add a small delay to prevent the loop from consuming 100% CPU
-        SDL_Delay(16); // ~60 FPS
+        // Add a small delay to prevent the loop from consuming 100% CPU - 16 -> almost 60 fps
+        SDL_Delay(16);  //future test, try to use this to modify the consuming of the cpu
     }
 
 quit:
@@ -302,3 +373,4 @@ quit:
     SDL_Quit();
     return 0;
 }
+

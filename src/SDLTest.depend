@@ -463,7 +463,7 @@
 1738713768 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\funciones_estudiante.h
 	"constantes.h"
 
-1738737742 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\main.c
+1738823147 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\main.c
 	"UI/clay.h"
 	"UI/clay_renderer_SDL2.c"
 	"BMPManipulator/bmp_functions.h"
@@ -473,8 +473,9 @@
 	<stdint.h>
 	<stdlib.h>
 	<stdio.h>
+	"UI/ui.c"
 
-1738728840 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay.h
+1738818015 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay.h
 	"clay.h"
 	<stdint.h>
 	<stdbool.h>
@@ -482,28 +483,36 @@
 	<emmintrin.h>
 	<arm_neon.h>
 
-1738737031 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
+1738789656 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
 	"clay.h"
 	<SDL.h>
 	<SDL_ttf.h>
 	<SDL_image.h>
 	<stdio.h>
 
-1738737031 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
+1738789656 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
 	"clay.h"
 	<SDL.h>
 	<SDL_ttf.h>
 	<SDL_image.h>
 	<stdio.h>
 
-1738732880 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.c
+1738823715 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.c
 	"bmp_functions.h"
 
-1738733910 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.h
+1738820390 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.h
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
 	<ctype.h>
 	<stdbool.h>
 	<stdint.h>
+
+1738811452 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\ui.c
+	"clay.h"
+	<stdio.h>
+
+1738811452 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\ui.c
+	"clay.h"
+	<stdio.h>
 

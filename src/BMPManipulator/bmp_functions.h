@@ -34,7 +34,7 @@ typedef struct {
 
 
 int loadImageBMPM(char* filePath, BMPMetadata* metadata, unsigned char** originalImage);
-
+int grayScaleBMPM(BMPMetadata* metadata, unsigned char* originalImage);
 
 
 #endif // BMP_FUNCTIONS_H_INCLUDED

@@ -33,7 +33,7 @@ int loadImageBMPM(char* filePath, BMPMetadata* metadata, unsigned char** origina
     metadata->importantColors = *(unsigned int*)(header + 50);
 
     if (metadata->bitsPerPixel != 24 || metadata->compression != 0){
-        printf("The file %s is not a supported file\n", filePath);
+        printf("The file %s is not a supported file (compression)\n", filePath);
         fclose(imgFile);
         return 0;
     }
@@ -69,3 +69,30 @@ int loadImageBMPM(char* filePath, BMPMetadata* metadata, unsigned char** origina
     return 1;
 }
 
+int grayScaleBMPM(BMPMetadata * metadata, unsigned char* originalImage){
+    for(int i = 0; i < metadata->height * metadata ->width; i++){
+        unsigned char *pixel = &originalImage[i * 3];
+
+        // Compute grayscale value
+        unsigned char gray = (pixel[0] + pixel[1] + pixel[2]) / 3;
+
+        // Overwrite pixel with grayscale values
+        pixel[0] = gray; // Blue
+        pixel[1] = gray; // Green
+        pixel[2] = gray; // Red
+    }
+    return 1;
+}
+
+
+/*
+  here we finish--->[][][][][][][][][]
+                    [][][][][][][][][]
+                    [][][][][][][][][]
+                    [][][][][][][][][]
+                    [][][][][][][][][]
+                    [][][][][][][][][]
+                    [][][][][][][][][]
+                    [][][][][][][][][]
+                    [][][][][][][][][]<--- here we start ---> for each pixel [B][G][R]
+*/
