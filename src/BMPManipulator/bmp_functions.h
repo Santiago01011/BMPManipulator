@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #define HEADER_SIZE 54
+// @todo (ZAPATASANTIAGO#7#02/06/25): Add support to more BMP types
 
 typedef struct {
     // File Header (14 bytes)
@@ -32,9 +33,23 @@ typedef struct {
     uint32_t importantColors;
 } BMPMetadata;
 
+typedef struct {
+    BMPMetadata base;  // Keep standard fields (first 54 bytes)
 
-int loadImageBMPM(char* filePath, BMPMetadata* metadata, unsigned char** originalImage);
+    // Extra fields (present if headerSize >= 108)
+    uint32_t redMask;
+    uint32_t greenMask;
+    uint32_t blueMask;
+    uint32_t alphaMask;   // Only for 32-bit images with transparency
+} BMPMetadataExtended;
+
+
+int calculatePitch(BMPMetadata* metadata);
+int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** originalImage);
 int grayScaleBMPM(BMPMetadata* metadata, unsigned char* originalImage);
+int rotateRightBMPM(BMPMetadata *metadata, unsigned char** originalImage);
+int rotateLeftBMPM(BMPMetadata *metadata, unsigned char** originalImage);
+
 
 
 #endif // BMP_FUNCTIONS_H_INCLUDED

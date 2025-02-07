@@ -13,8 +13,13 @@
 
 
 #include "UI/ui.c"
+
+/**Buttons defines**/
 #define BOX_PADD 20
 #define BOX_H 40
+#define BTN_H 25
+#define BTN_W 75
+
 
 
 const int FontIdBody16 = 0;
@@ -30,6 +35,9 @@ typedef enum {
     ACTION_CHANGE_RGB,
     ACTION_SCALE,
     ACTION_GRAYSCALE,
+    ACTION_OPEN_FILE,
+    ACTION_OPEN_EDIT_MENU,
+    ACTION_OPEN_FILE_MENU,
     ACTION_NONE
 } ButtonAction;
 
@@ -37,6 +45,9 @@ unsigned char* originalImage = NULL;
 BMPMetadata metadata;
 SDL_Surface *sample_image;
 SDL_Window *window = NULL;
+
+
+int chargeSurface(const char *imgPath);
 
 void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t userData) {
     if (pointerData.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
@@ -51,6 +62,19 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
             case ACTION_ROTATE:
                 printf("Rotate function called!\n");
                 // Call rotation function here
+                rotateRightBMPM(&metadata, &originalImage);
+                sample_image = SDL_CreateRGBSurfaceFrom(
+                    originalImage,
+                    metadata.width,
+                    metadata.height,
+                    metadata.bitsPerPixel,
+                    calculatePitch(&metadata),
+                    0x00FF0000,  // Red mask
+                    0x0000FF00,  // Green mask
+                    0x000000FF,  // Blue mask
+                    0xFF000000   // Alpha mask
+                );
+
                 break;
 
             case ACTION_CHANGE_RGB:
@@ -69,6 +93,21 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 grayScaleBMPM(&metadata, originalImage);
                 break;
 
+            case ACTION_OPEN_FILE:
+                printf("Opening file...\n");
+
+                char imgPath[256];
+                printf("Enter the path of the image: ");
+                scanf("%255s", imgPath);
+
+                if (chargeSurface(imgPath)) {
+                    printf("Image loaded successfully.\n");
+                } else {
+                    printf("Failed to load image.\n");
+                }
+
+                break;
+
             default:
                 printf("Unknown action\n");
                 break;
@@ -77,14 +116,15 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
 }
 
 void RenderButton(Clay_String text, ButtonAction action) {
-
     CLAY({
         .layout = {
             .padding = {BOX_PADD, BOX_PADD, 0, 0},
-            .sizing = {.height = 25},
+            .sizing = {.height = BTN_H},
             .childAlignment = { .y = CLAY_ALIGN_Y_CENTER}
         },
-        .backgroundColor = Clay_Hovered() ? ButtonHoverColor : ButtonColor
+        .backgroundColor = Clay_Hovered() ? ButtonHoverColor : ButtonColor,
+        .cornerRadius = CLAY_CORNER_RADIUS(6),
+        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
     }) {
         Clay_OnHover(HandleButtonClick, (intptr_t)action); // Attach event handler
         CLAY_TEXT(text, CLAY_TEXT_CONFIG({
@@ -96,31 +136,10 @@ void RenderButton(Clay_String text, ButtonAction action) {
 }
 
 void RenderDropdownMenuItem(Clay_String text) {
-    CLAY({.layout = { .padding = CLAY_PADDING_ALL(BOX_PADD)}}) {
-        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
-            .fontId = FontIdBody16,
-            .fontSize = BOX_PADD,
-            .textColor = { 255, 255, 255, 255 }
-        }));
+    CLAY({.layout = {.sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}}, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}})
+    {
+        CLAY_TEXT(text, CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
     }
-}
-
-void RenderHeader() {
-    CLAY({
-        .id = CLAY_ID("HeaderBar"),
-        .layout = {
-            .sizing = { .height = CLAY_SIZING_FIXED(BOX_H), .width = CLAY_SIZING_GROW(0) },
-            .padding = CLAY_PADDING_ALL(BOX_PADD),
-            .childGap = BOX_PADD,
-            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER}
-        },
-        .backgroundColor = BackgroundColor
-
-    }) {
-        RenderButton(CLAY_STRING("File"), ACTION_NONE);
-        RenderButton(CLAY_STRING("Edit"), ACTION_NONE);
-    }
-
 }
 
 void RenderCentralPanel() {
@@ -135,7 +154,8 @@ void RenderCentralPanel() {
             .padding = CLAY_PADDING_ALL(0),
             .childGap = 0,
             .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
-        }
+        },
+        .cornerRadius = CLAY_CORNER_RADIUS(5)
 
     }) {
         if (sample_image) {
@@ -201,25 +221,50 @@ void RenderEditButtons() {
 }
 
 static Clay_RenderCommandArray CreateLayout() {
+
     Clay_BeginLayout();
+
     Clay_Sizing layoutExpand = {
         .width = CLAY_SIZING_GROW(0),
         .height = CLAY_SIZING_GROW(0)
     };
-    CLAY({
-         .id = CLAY_ID("OuterContainer"),
-         .backgroundColor = FullBackgroundColor,
-         .layout = {
-            .layoutDirection = CLAY_TOP_TO_BOTTOM,
-            .sizing = layoutExpand,
-            .padding = {5, 5, 5, 5},
-            .childGap = 5
-         }
-    }) {
-        // Header
-        RenderHeader();
 
-        // Image Display
+    // Main container
+    CLAY({ .id = CLAY_ID("OuterContainer"), .backgroundColor = FullBackgroundColor, .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = layoutExpand, .padding = {5, 5, 5, 5}, .childGap = 5} })
+    {
+        // Header Bar Layout
+        CLAY({ .id = CLAY_ID("HeaderBar"), .layout = { .sizing = { .height = CLAY_SIZING_FIXED(BOX_H), .width = CLAY_SIZING_GROW(0) }, .padding = CLAY_PADDING_ALL(BOX_PADD), .childGap = BOX_PADD, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER} }, .backgroundColor = BackgroundColor, .cornerRadius = CLAY_CORNER_RADIUS(5) })
+        { // Child header butons
+            /* File button */
+            CLAY({.id = CLAY_ID("file_btn"), .layout = { .padding = {BOX_PADD, BOX_PADD, 0, 0}, .sizing = {.height = BTN_H, .width = BTN_W}, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER}}, .backgroundColor = Clay_Hovered() ? ButtonHoverColor : ButtonColor, .cornerRadius = CLAY_CORNER_RADIUS(6), .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} })
+            {
+                // Button text and efects
+                Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE_MENU); CLAY_TEXT(CLAY_STRING("File"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite}));
+                bool fileMenuVisible = Clay_PointerOver(Clay_GetElementId(CLAY_STRING("file_btn"))) || Clay_PointerOver(Clay_GetElementId(CLAY_STRING("file_menu")));
+                if (fileMenuVisible  /*|| fileMenuClicked*/)
+                {
+                    /* File Dropdown Menu */
+                    CLAY({ .id = CLAY_ID("file_menu"), .floating = { .attachTo = CLAY_ATTACH_TO_PARENT, .attachPoints = { .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },} })
+                    {
+                        CLAY({ .layout = { .layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.height = CLAY_SIZING_GROW(0), .width = CLAY_SIZING_FIXED(BTN_W)} } })
+                        {
+                            // Render dropdown items here
+                            CLAY({ .id = CLAY_ID("open_file"), .layout = {.sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}}, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}})
+                            {
+                                Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE); CLAY_TEXT(CLAY_STRING("Open"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
+                            }
+                            RenderDropdownMenuItem(CLAY_STRING("Close"));
+                        }
+                    }
+                }
+            }
+
+        /* Edit button */CLAY({.id = CLAY_ID("edit_btn"), .layout = { .padding = {BOX_PADD, BOX_PADD, 0, 0}, .sizing = {.height = 25}, .childAlignment = {.y = CLAY_ALIGN_Y_CENTER} }, .backgroundColor = Clay_Hovered() ? ButtonHoverColor : ButtonColor, .cornerRadius = CLAY_CORNER_RADIUS(6), .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} })
+        { Clay_OnHover(HandleButtonClick, ACTION_OPEN_EDIT_MENU); CLAY_TEXT(CLAY_STRING("Edit"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite}));}
+        /* Drop Down Edit Menu */
+        }
+
+        // Image Display Panel
         RenderCentralPanel();
 
         // Edit Buttons
@@ -231,6 +276,32 @@ static Clay_RenderCommandArray CreateLayout() {
 
 void HandleClayErrors(Clay_ErrorData errorData) {
     printf("%s", errorData.errorText.chars);
+}
+
+int chargeSurface(const char *imgPath){
+    if(loadImageBMPM(imgPath, &metadata, &originalImage)){
+        int pitch = calculatePitch(&metadata);
+        sample_image = SDL_CreateRGBSurfaceFrom(
+            originalImage,
+            metadata.width,
+            metadata.height,
+            metadata.bitsPerPixel,
+            pitch,
+            0x00FF0000,  // Red mask
+            0x0000FF00,  // Green mask
+            0x000000FF,  // Blue mask
+            0xFF000000   // Alpha mask
+        );
+        if(!sample_image){
+            fprintf(stderr, "Error: could not create surface from image: %s\n", SDL_GetError());
+            free(originalImage);
+            return 0;
+        }
+        return 1;
+    } else {
+        fprintf(stderr, "Error: could not create surface from image: %s\n", SDL_GetError());
+        return 0;
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -259,31 +330,7 @@ int main(int argc, char *argv[]) {
         .fontId = FontIdBody16,
         .font = font,
     };
-    if(loadImageBMPM("resources/miku.bmp", &metadata, &originalImage)){
-        //printf("Image width: %d, image height: %d\n", metadata.width, metadata.height);
-        int pitch = ((metadata.width * 3 + 3) / 4) * 4;
-        printf("Pitch: %d\n", pitch);
-        sample_image = SDL_CreateRGBSurfaceFrom(
-            originalImage,
-            metadata.width,
-            metadata.height,
-            metadata.bitsPerPixel,
-            pitch,
-            0xFF0000,  // Red mask
-            0x00FF00,  // Green mask
-            0x0000FF,  // Blue mask
-            0           // Alpha mask
-        );
-        if(!sample_image){
-            fprintf(stderr, "Error: could not create surface from image: %s\n", SDL_GetError());
-            free(originalImage);
-            return 1;
-        }
-    } else {
-        system("pause");
-    }
-    //sample_image = IMG_Load("resources/test_org.bmp");
-
+    chargeSurface("resources/noImage.bmp");
     SDL_Renderer *renderer = NULL;
     if (SDL_CreateWindowAndRenderer(600, 400, SDL_WINDOW_RESIZABLE, &window, &renderer) < 0) {
         fprintf(stderr, "Error: could not create window and renderer: %s", SDL_GetError());
@@ -359,14 +406,14 @@ int main(int argc, char *argv[]) {
 quit:
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    if(originalImage) {
+        free(originalImage);
+    }
     if (sample_image) {
         SDL_FreeSurface(sample_image);
     }
     if (memoryBuffer) {
         free(memoryBuffer);
-    }
-    if(originalImage) {
-        free(originalImage);
     }
     IMG_Quit();
     TTF_Quit();
