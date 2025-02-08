@@ -142,7 +142,7 @@ int grayScaleBMPM(BMPMetadata * metadata, unsigned char* originalImage){
     return 1;
 }
 
-int rotateRightBMPM(BMPMetadata *metadata, unsigned char** originalImage) {
+/*int rotateRightBMPM(BMPMetadata *metadata, unsigned char** originalImage) {
     int oldWidth = metadata->width;
     int oldHeight = metadata->height;
     int bytesPerPixel = metadata->bitsPerPixel / 8;
@@ -196,24 +196,80 @@ int rotateRightBMPM(BMPMetadata *metadata, unsigned char** originalImage) {
     *originalImage = tempImage;
 
     return 0;
+}*/
+
+
+int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char dir) {
+    int srcIndex, destIndex, x, y;
+    int bytesPerPixel = metadata->bitsPerPixel / 8;
+
+    // Save previous row size before swap
+    int32_t oldRowSize = calculatePitch(metadata);
+
+    // Swap width and height to rotate
+    int32_t temp = metadata->width;
+    metadata->width = metadata->height;
+    metadata->height = temp;
+
+    int32_t newRowSize = calculatePitch(metadata);
+
+
+
+    // Calculate new image size
+    size_t expectedSize = newRowSize * abs(metadata->height);
+
+    if (*originalImage == NULL) {
+        puts("Error: originalImage is NULL!");
+        return 0;
+    }
+
+    // Allocate memory for the rotated image
+    unsigned char *tempImage = (unsigned char*)malloc(expectedSize);
+    if (!tempImage) {
+        puts("Error allocating memory for rotateRightBMP");
+        return 0;
+    }
+
+
+    if(dir == 'r' || dir == 'l'){
+        // Rotate the image
+        for (y = 0; y < metadata->width; y++) {
+            for (x = 0; x < metadata->height; x++) {
+                // Source pixel in original image
+                srcIndex = y * oldRowSize + x * bytesPerPixel;
+                if(dir == 'l') destIndex = x * newRowSize + (metadata->width - y - 1) * bytesPerPixel;
+                if(dir == 'r') destIndex = (metadata->height - x - 1) * newRowSize + y * bytesPerPixel;
+                // Copy pixel data
+                memcpy(&tempImage[destIndex], &(*originalImage)[srcIndex], bytesPerPixel);
+            }
+        }
+    } else {
+        printf("dir argument is not a valid value");
+        return 0;
+    }
+
+    // Free old image and assign new one
+    free(*originalImage);
+    *originalImage = tempImage;
+
+    return 1;
 }
 
-
 /*practice matrix
-                    [][][][][][][][][]
-                    [][][][][][][][][]
-                    [][][][][][][][][]
-                    [][][][][][][][][]
-                    [][][][][][][][][]
-                    [][][][][][][][][]
-                    [][][][][][][][][]
-                    [][][][][][][][][]
-                    [][][][][][][][][]
+                      0  1  2  3  4  5  6  7  8
+ here we finish---> 0[ ][ ][ ][ ][ ][ ][ ][ ][ ]
+                    1[ ][ ][ ][ ][ ][ ][ ][ ][ ]
+                    2[ ][ ][ ][ ][ ][ ][ ][ ][ ]
+                    3[ ][ ][ ][ ][ ][ ][ ][ ][ ]
+                    4[ ][ ][ ][ ][ ][ ][ ][ ][ ]
+                    5[ ][ ][ ][ ][ ][ ][ ][ ][ ]
+                    6[ ][ ][ ][ ][ ][ ][ ][ ][ ]
+                    7[ ][ ][ ][ ][ ][ ][ ][ ][ ]
+                    8[ ][ ][ ][ ][ ][ ][ ][ ][ ]<--- here we start ---> for each pixel [B][G][R]
 */
 
 
-/*
-        (x,y) => (x2 = h - y1 - 1, y2 = x1) = (1, 7) -> 90° left
+/* rotate left  (x, y) => (x2 = h - y1 - 1, y2 = x1) = (x2, y2) -> 90° left
         (8,8) -> (0,8) => (x = 9 - 8 - 1 , y = x) = (0,8)
         (7,7) -> (7, 1) => (x = 9 - 7 - 1, y = x) = (1, 7)
         (6,3) => (x2 = 9 - 3 - 1, y2 = 6) = (5, 6)
@@ -229,8 +285,7 @@ int rotateRightBMPM(BMPMetadata *metadata, unsigned char** originalImage) {
                     7[ ][ ][ ][ ][ ][ ][ ][a][ ]
                     8[ ][ ][ ][ ][ ][ ][ ][ ][a]<--- here we start ---> for each pixel [B][G][R]
 */
-/*
-        (x1, y2) => (x2 = y1, y2 = h - x1 - 1) = (x2, y2) -> 90° right
+/* rotate right (x, y) => (x2 = y1, y2 = h - x1 - 1) = (x2, y2) -> 90° right
         (x1 = 8 , y1 = 8) => (x2 = 8, y2 = 9 - 8 - 1) = (8, 0)
         (x1 = 7 , y1 = 7) => (x2 = 7, y2 = 9 - 7 - 1) = (7, 1)
         (x1 = 6 , y1 = 3) => (x2 = 3, y2 = 9 - 6 - 1) = (3, 2)
@@ -246,3 +301,26 @@ int rotateRightBMPM(BMPMetadata *metadata, unsigned char** originalImage) {
                     7[ ][r][ ][ ][ ][ ][ ][a][ ]
                     8[r][ ][ ][ ][ ][ ][ ][ ][a]<--- here we start ---> for each pixel [B][G][R]
 */
+
+/* diagonal practice
+
+                    (x,x) -> main diagonal
+                    (x,x) -> main diagonal
+
+                       0  1  2  3  4  5  6  7  8
+ here we finish---> 0 [a][ ][ ][ ][ ][ ][ ][ ][b]
+                    1 [ ][a][ ][ ][ ][ ][ ][b][ ]
+                    2 [ ][ ][a][ ][ ][ ][b][ ][ ]
+                    3 [ ][ ][ ][a][ ][b][ ][ ][ ]
+                    4 [ ][ ][ ][ ][a][ ][ ][ ][ ]
+                    5 [ ][ ][ ][b][ ][a][ ][ ][ ]
+                    6 [ ][ ][b][ ][ ][ ][a][ ][ ]
+                    7 [ ][b][ ][ ][ ][ ][ ][a][ ]
+                    8 [b][ ][ ][ ][ ][ ][ ][ ][a]<--- here we start ---> for each pixel [B][G][R]
+*/
+
+
+
+
+
+

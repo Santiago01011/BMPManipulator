@@ -32,6 +32,8 @@ const Clay_Color ButtonHoverColor = (Clay_Color){82, 121, 111, 100}; // rgb(82, 
 typedef enum {
     ACTION_CUT,
     ACTION_ROTATE,
+    ACTION_ROTATE_RIGHT,
+    ACTION_ROTATE_LEFT,
     ACTION_CHANGE_RGB,
     ACTION_SCALE,
     ACTION_GRAYSCALE,
@@ -43,7 +45,7 @@ typedef enum {
 
 unsigned char* originalImage = NULL;
 BMPMetadata metadata;
-SDL_Surface *sample_image;
+SDL_Surface *editing_image;
 SDL_Window *window = NULL;
 
 
@@ -59,21 +61,19 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 // Call cut function here
                 break;
 
-            case ACTION_ROTATE:
+            case ACTION_ROTATE_RIGHT:
                 printf("Rotate function called!\n");
                 // Call rotation function here
-                rotateRightBMPM(&metadata, &originalImage);
-                sample_image = SDL_CreateRGBSurfaceFrom(
-                    originalImage,
-                    metadata.width,
-                    metadata.height,
-                    metadata.bitsPerPixel,
-                    calculatePitch(&metadata),
-                    0x00FF0000,  // Red mask
-                    0x0000FF00,  // Green mask
-                    0x000000FF,  // Blue mask
-                    0xFF000000   // Alpha mask
-                );
+                rotateBMPM(&metadata, &originalImage, 'r');
+                editing_image = SDL_CreateRGBSurfaceFrom(originalImage,  metadata.width, metadata.height, metadata.bitsPerPixel, calculatePitch(&metadata), 0x00FF0000/* Red mask */, 0x0000FF00/* Green mask */, 0x000000FF/* Blue mask*/, 0xFF000000/* Alpha mask*/ );
+
+                break;
+
+            case ACTION_ROTATE_LEFT:
+                printf("Rotate function called!\n");
+                // Call rotation function here
+                rotateBMPM(&metadata, &originalImage, 'l');
+                editing_image = SDL_CreateRGBSurfaceFrom(originalImage,  metadata.width, metadata.height, metadata.bitsPerPixel, calculatePitch(&metadata), 0x00FF0000/* Red mask */, 0x0000FF00/* Green mask */, 0x000000FF/* Blue mask*/, 0xFF000000/* Alpha mask*/ );
 
                 break;
 
@@ -158,9 +158,9 @@ void RenderCentralPanel() {
         .cornerRadius = CLAY_CORNER_RADIUS(5)
 
     }) {
-        if (sample_image) {
-            int img_width = sample_image->w;
-            int img_height = sample_image->h;
+        if (editing_image) {
+            int img_width = editing_image->w;
+            int img_height = editing_image->h;
 
             // Get the available space in the parent container
             int available_width = mainWwidth - BOX_PADD;
@@ -189,7 +189,7 @@ void RenderCentralPanel() {
                 },
                 .image = {
                     .sourceDimensions = {scaled_width, scaled_height},
-                    .imageData = sample_image,
+                    .imageData = editing_image,
                 }
             }) {}
         } else {
@@ -201,22 +201,87 @@ void RenderCentralPanel() {
 
 
 void RenderEditButtons() {
-    CLAY({
-         .id = CLAY_ID("EditsButtons"),
-         .backgroundColor = BackgroundColor,
-         .layout = {
-            .sizing = { .height = CLAY_SIZING_FIXED(BOX_H), .width = CLAY_SIZING_GROW(0) },
-            .padding = CLAY_PADDING_ALL(BOX_PADD),
-            .childGap = BOX_PADD,
-            .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
-         },
-            .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f} //this don't work
-    }) {
+    // Renders the Bottom panel that holds the buttons to edit the image
+    CLAY({ .id = CLAY_ID("EditsButtons"), .backgroundColor = BackgroundColor, .layout = { .sizing = { .height = CLAY_SIZING_FIXED(BOX_H), .width = CLAY_SIZING_GROW(0) }, .padding = CLAY_PADDING_ALL(BOX_PADD), .childGap = BOX_PADD, .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER } }, .cornerRadius = CLAY_CORNER_RADIUS(8) })
+    {
         RenderButton(CLAY_STRING("Cut"), ACTION_CUT);
-        RenderButton(CLAY_STRING("Rotate"), ACTION_ROTATE);
-        RenderButton(CLAY_STRING("Change RGB"), ACTION_CHANGE_RGB);
-        RenderButton(CLAY_STRING("Scale"), ACTION_SCALE);
-        RenderButton(CLAY_STRING("GrayScale"), ACTION_GRAYSCALE);
+
+        Clay_ElementDeclaration btnConfig =
+        {
+            .id = CLAY_ID("rotate_btn"),
+            .layout = {
+                .padding = {0, 0, 0, 0},
+                .sizing = {.height = BTN_H, .width = BTN_W},
+                .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER},
+                .childGap = 20
+            }
+        };
+
+        if (Clay_PointerOver(CLAY_ID("rotate_btn"))) {
+            btnConfig.backgroundColor = ButtonHoverColor;
+            btnConfig.cornerRadius = (Clay_CornerRadius){ 0, 0, 0, 0 };
+            btnConfig.border = (Clay_BorderElementConfig){
+                .width = {1, 1, 0, 1},
+                .color = ColorWhite
+            };
+        } else {
+            btnConfig.backgroundColor = ButtonColor;
+            btnConfig.cornerRadius = (Clay_CornerRadius){ 6, 6, 6, 6 };
+            btnConfig.border = (Clay_BorderElementConfig){
+                .width = {1, 1, 1, 1},
+                .color = FullBackgroundColor
+            };
+        }
+
+        CLAY(btnConfig) {
+            // Button content goes here
+
+            // Button text and effects
+            Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE_MENU); CLAY_TEXT(CLAY_STRING("Rotate"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite}));
+            bool rotMenuVisible = Clay_PointerOver(Clay_GetElementId(CLAY_STRING("rotate_btn"))) || Clay_PointerOver(Clay_GetElementId(CLAY_STRING("rot_menu")));
+            if (rotMenuVisible  /*|| rotMenuClicked*/)
+            {
+                /* Rotating Up Slide */
+                CLAY({
+                    .id = CLAY_ID("rot_menu"),
+                    .layout = {
+                        .layoutDirection = CLAY_TOP_TO_BOTTOM      //The layout direction should apply to the floating element
+                    },
+                    .floating = { .attachTo = CLAY_ATTACH_TO_PARENT,
+                        .attachPoints = {
+                            .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM,
+                            .parent = CLAY_ATTACH_POINT_RIGHT_TOP
+                        }
+                    }
+                }){
+                    CLAY({  //The buttons should be siblings under the floating element.
+                        .id = CLAY_ID("rot_r"),
+                        .layout = {
+                            .sizing = {.width = BTN_W, .height = BTN_H},
+                            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT},
+                            .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}
+                        },
+                        .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor,
+                        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
+                    }){
+                        Clay_OnHover(HandleButtonClick, ACTION_ROTATE_RIGHT); CLAY_TEXT(CLAY_STRING("Right"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
+                    }
+
+                    CLAY({
+                        .id = CLAY_ID("rot_l"),
+                        .layout = {
+                            .sizing = {.width = BTN_W, .height = BTN_H},
+                            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT},
+                            .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}
+                        },
+                        .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor,
+                        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
+                    }){
+                        Clay_OnHover(HandleButtonClick, ACTION_ROTATE_LEFT); CLAY_TEXT(CLAY_STRING("Left"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -281,7 +346,7 @@ void HandleClayErrors(Clay_ErrorData errorData) {
 int chargeSurface(const char *imgPath){
     if(loadImageBMPM(imgPath, &metadata, &originalImage)){
         int pitch = calculatePitch(&metadata);
-        sample_image = SDL_CreateRGBSurfaceFrom(
+        editing_image = SDL_CreateRGBSurfaceFrom(
             originalImage,
             metadata.width,
             metadata.height,
@@ -292,7 +357,7 @@ int chargeSurface(const char *imgPath){
             0x000000FF,  // Blue mask
             0xFF000000   // Alpha mask
         );
-        if(!sample_image){
+        if(!editing_image){
             fprintf(stderr, "Error: could not create surface from image: %s\n", SDL_GetError());
             free(originalImage);
             return 0;
@@ -409,8 +474,8 @@ quit:
     if(originalImage) {
         free(originalImage);
     }
-    if (sample_image) {
-        SDL_FreeSurface(sample_image);
+    if (editing_image) {
+        SDL_FreeSurface(editing_image);
     }
     if (memoryBuffer) {
         free(memoryBuffer);

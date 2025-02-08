@@ -47,8 +47,7 @@ typedef struct {
 int calculatePitch(BMPMetadata* metadata);
 int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** originalImage);
 int grayScaleBMPM(BMPMetadata* metadata, unsigned char* originalImage);
-int rotateRightBMPM(BMPMetadata *metadata, unsigned char** originalImage);
-int rotateLeftBMPM(BMPMetadata *metadata, unsigned char** originalImage);
+int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char dir);
 
 
 
