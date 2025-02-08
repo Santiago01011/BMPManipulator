@@ -143,28 +143,24 @@ static void SDL_RenderFillRoundedRect(SDL_Renderer* renderer, const SDL_FRect re
 
 SDL_Rect currentClippingRectangle;
 
-static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray renderCommands, SDL2_Font *fonts)
-{
-    for (uint32_t i = 0; i < renderCommands.length; i++)
-    {
+static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray renderCommands, SDL2_Font *fonts) {
+    for (uint32_t i = 0; i < renderCommands.length; i++) {
         Clay_RenderCommand *renderCommand = Clay_RenderCommandArray_Get(&renderCommands, i);
         Clay_BoundingBox boundingBox = renderCommand->boundingBox;
-        switch (renderCommand->commandType)
-        {
+        switch (renderCommand->commandType) {
             case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: {
                 Clay_RectangleRenderData *config = &renderCommand->renderData.rectangle;
                 Clay_Color color = config->backgroundColor;
                 SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
                 SDL_FRect rect = (SDL_FRect) {
-                        .x = boundingBox.x,
-                        .y = boundingBox.y,
-                        .w = boundingBox.width,
-                        .h = boundingBox.height,
+                    .x = boundingBox.x,
+                    .y = boundingBox.y,
+                    .w = boundingBox.width,
+                    .h = boundingBox.height,
                 };
                 if (config->cornerRadius.topLeft > 0) {
                     SDL_RenderFillRoundedRect(renderer, rect, config->cornerRadius.topLeft, color);
-                }
-                else {
+                } else {
                     SDL_RenderFillRectF(renderer, &rect);
                 }
                 break;
@@ -175,18 +171,18 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 memcpy(cloned, config->stringContents.chars, config->stringContents.length);
                 TTF_Font* font = fonts[config->fontId].font;
                 SDL_Surface *surface = TTF_RenderUTF8_Blended(font, cloned, (SDL_Color) {
-                        .r = (Uint8)config->textColor.r,
-                        .g = (Uint8)config->textColor.g,
-                        .b = (Uint8)config->textColor.b,
-                        .a = (Uint8)config->textColor.a,
+                    .r = (Uint8)config->textColor.r,
+                    .g = (Uint8)config->textColor.g,
+                    .b = (Uint8)config->textColor.b,
+                    .a = (Uint8)config->textColor.a,
                 });
                 SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
 
                 SDL_Rect destination = (SDL_Rect){
-                        .x = boundingBox.x,
-                        .y = boundingBox.y,
-                        .w = boundingBox.width,
-                        .h = boundingBox.height,
+                    .x = boundingBox.x,
+                    .y = boundingBox.y,
+                    .w = boundingBox.width,
+                    .h = boundingBox.height,
                 };
                 SDL_RenderCopy(renderer, texture, NULL, &destination);
 
@@ -197,10 +193,10 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
             }
             case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START: {
                 currentClippingRectangle = (SDL_Rect) {
-                        .x = boundingBox.x,
-                        .y = boundingBox.y,
-                        .w = boundingBox.width,
-                        .h = boundingBox.height,
+                    .x = boundingBox.x,
+                    .y = boundingBox.y,
+                    .w = boundingBox.width,
+                    .h = boundingBox.height,
                 };
                 SDL_RenderSetClipRect(renderer, &currentClippingRectangle);
                 break;
@@ -210,9 +206,8 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 break;
             }
             case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
-                Clay_ImageRenderData *config = &renderCommand->renderData.image;
-
-                SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, config->imageData);
+                //Clay_ImageRenderData *config = &renderCommand->renderData.image;
+                //SDL_Texture *texture = config->imageData;
 
                 SDL_Rect destination = (SDL_Rect){
                     .x = boundingBox.x,
@@ -221,10 +216,7 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                     .h = boundingBox.height,
                 };
 
-                //SDL_RenderCopy(renderer, texture, NULL, &destination);
-                SDL_RenderCopyEx(renderer, texture, NULL, &destination, 0, NULL, SDL_FLIP_VERTICAL);
-
-                SDL_DestroyTexture(texture);
+                SDL_RenderCopyEx(renderer, (SDL_Texture*)(&renderCommand->renderData.image.imageData), NULL, &destination, 0, NULL, SDL_FLIP_VERTICAL);
                 break;
             }
             case CLAY_RENDER_COMMAND_TYPE_BORDER: {
@@ -233,12 +225,6 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 if (config->width.left > 0) {
                     SDL_SetRenderDrawColor(renderer, CLAY_COLOR_TO_SDL_COLOR_ARGS(config->color));
                     SDL_FRect rect = { boundingBox.x, boundingBox.y + config->cornerRadius.topLeft, config->width.left, boundingBox.height - config->cornerRadius.topLeft - config->cornerRadius.bottomLeft };
-                    SDL_RenderFillRectF(renderer, &rect);
-                }
-
-                if (config->width.right > 0) {
-                    SDL_SetRenderDrawColor(renderer, CLAY_COLOR_TO_SDL_COLOR_ARGS(config->color));
-                    SDL_FRect rect = { boundingBox.x + boundingBox.width - config->width.right, boundingBox.y + config->cornerRadius.topRight, config->width.right, boundingBox.height - config->cornerRadius.topRight - config->cornerRadius.bottomRight };
                     SDL_RenderFillRectF(renderer, &rect);
                 }
 

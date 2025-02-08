@@ -113,6 +113,15 @@ int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** o
             fclose(imgFile);
             return 0;
         }
+        // **BGR to RGB byte swap for 24-bit BMP**
+        if (metadata->bitsPerPixel == 24) {
+            unsigned char *pixels = *originalImage;
+            for (int i = 0; i < metadata->width * metadata->height; ++i) {
+                unsigned char temp = pixels[i * 3];       // Blue
+                pixels[i * 3] = pixels[i * 3 + 2];    // Blue becomes Red
+                pixels[i * 3 + 2] = temp;               // Red becomes Blue
+            }
+        }
 
         fclose(imgFile);
         return 1;

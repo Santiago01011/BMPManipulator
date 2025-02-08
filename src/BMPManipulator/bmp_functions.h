@@ -9,8 +9,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define HEADER_SIZE 54
 // @todo (ZAPATASANTIAGO#7#02/06/25): Add support to more BMP types
+#define HEADER_SIZE 54
 
 typedef struct {
     // File Header (14 bytes)

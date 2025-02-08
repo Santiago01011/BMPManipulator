@@ -44,9 +44,11 @@ typedef enum {
 } ButtonAction;
 
 unsigned char* originalImage = NULL;
-BMPMetadata metadata;
-SDL_Surface *editing_image;
+SDL_Texture *editing_image = NULL;
 SDL_Window *window = NULL;
+SDL_Renderer *renderer = NULL;
+BMPMetadata metadata;
+
 
 
 int chargeSurface(const char *imgPath);
@@ -65,15 +67,15 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 printf("Rotate function called!\n");
                 // Call rotation function here
                 rotateBMPM(&metadata, &originalImage, 'r');
-                editing_image = SDL_CreateRGBSurfaceFrom(originalImage,  metadata.width, metadata.height, metadata.bitsPerPixel, calculatePitch(&metadata), 0x00FF0000/* Red mask */, 0x0000FF00/* Green mask */, 0x000000FF/* Blue mask*/, 0xFF000000/* Alpha mask*/ );
-
+                //editing_image = SDL_CreateRGBSurfaceFrom(originalImage,  metadata.width, metadata.height, metadata.bitsPerPixel, calculatePitch(&metadata), 0x00FF0000/* Red mask */, 0x0000FF00/* Green mask */, 0x000000FF/* Blue mask*/, 0xFF000000/* Alpha mask*/ );
+                SDL_UpdateTexture(editing_image, NULL, originalImage, calculatePitch(&metadata));
                 break;
 
             case ACTION_ROTATE_LEFT:
                 printf("Rotate function called!\n");
                 // Call rotation function here
                 rotateBMPM(&metadata, &originalImage, 'l');
-                editing_image = SDL_CreateRGBSurfaceFrom(originalImage,  metadata.width, metadata.height, metadata.bitsPerPixel, calculatePitch(&metadata), 0x00FF0000/* Red mask */, 0x0000FF00/* Green mask */, 0x000000FF/* Blue mask*/, 0xFF000000/* Alpha mask*/ );
+                //editing_image = SDL_CreateRGBSurfaceFrom(originalImage,  metadata.width, metadata.height, metadata.bitsPerPixel, calculatePitch(&metadata), 0x00FF0000/* Red mask */, 0x0000FF00/* Green mask */, 0x000000FF/* Blue mask*/, 0xFF000000/* Alpha mask*/ );
 
                 break;
 
@@ -100,7 +102,7 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 printf("Enter the path of the image: ");
                 scanf("%255s", imgPath);
 
-                if (chargeSurface(imgPath)) {
+                if (chargeTexture(imgPath)) {
                     printf("Image loaded successfully.\n");
                 } else {
                     printf("Failed to load image.\n");
@@ -142,7 +144,7 @@ void RenderDropdownMenuItem(Clay_String text) {
     }
 }
 
-void RenderCentralPanel() {
+/*void RenderCentralPanel() {
     int mainWwidth, mainWheight, scaled_width, scaled_height;
     SDL_GetWindowSize(window, &mainWwidth, &mainWheight);
 
@@ -158,9 +160,9 @@ void RenderCentralPanel() {
         .cornerRadius = CLAY_CORNER_RADIUS(5)
 
     }) {
-        if (editing_image) {
-            int img_width = editing_image->w;
-            int img_height = editing_image->h;
+        if (originalImage) {
+            int img_width = metadata.width;
+            int img_height = metadata.height;
 
             // Get the available space in the parent container
             int available_width = mainWwidth - BOX_PADD;
@@ -197,7 +199,7 @@ void RenderCentralPanel() {
         }
     }
 }
-
+*/
 
 
 void RenderEditButtons() {
@@ -343,30 +345,107 @@ void HandleClayErrors(Clay_ErrorData errorData) {
     printf("%s", errorData.errorText.chars);
 }
 
-int chargeSurface(const char *imgPath){
-    if(loadImageBMPM(imgPath, &metadata, &originalImage)){
-        int pitch = calculatePitch(&metadata);
-        editing_image = SDL_CreateRGBSurfaceFrom(
-            originalImage,
-            metadata.width,
-            metadata.height,
-            metadata.bitsPerPixel,
-            pitch,
-            0x00FF0000,  // Red mask
-            0x0000FF00,  // Green mask
-            0x000000FF,  // Blue mask
-            0xFF000000   // Alpha mask
-        );
-        if(!editing_image){
-            fprintf(stderr, "Error: could not create surface from image: %s\n", SDL_GetError());
+void RenderCentralPanel() {
+    int mainWwidth = 0, mainWheight = 0;
+    SDL_GetWindowSize(window, &mainWwidth, &mainWheight);
+    int scaled_width = 0, scaled_height = 0;
+
+    // Central panel container
+    CLAY({
+        .id = CLAY_ID("CentralPanel"),
+        .backgroundColor = BackgroundColor,
+        .layout = {
+            .sizing = { .width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_GROW(0) },
+            .padding = CLAY_PADDING_ALL(0),
+            .childGap = 0,
+            .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
+        },
+        .cornerRadius = CLAY_CORNER_RADIUS(5)
+    }) {
+        if (editing_image) { //mod
+            int img_width = metadata.width;
+            int img_height = metadata.height;
+
+            // Calculations for available space; adjust BOX_PADD and BOX_H as defined in your project
+            int available_width = mainWwidth - BOX_PADD;
+            int available_height = mainWheight - (BOX_PADD * 2) - (BOX_H * 2);
+            float scale_width = (float)available_width / (float)img_width;
+            float scale_height = (float)available_height / (float)img_height;
+            float scale = (scale_width < scale_height) ? scale_width : scale_height;
+
+            if (img_height > available_height || img_width > available_width) {
+                scaled_width = (int)(img_width * scale);
+                scaled_height = (int)(img_height * scale);
+            } else {
+                scaled_width = img_width;
+                scaled_height = img_height;
+            }
+
+            // Debug printout
+            printf("Rendering image with scaled dimensions: %dx%d (Original: %dx%d)\n",
+                   scaled_width, scaled_height, img_width, img_height);
+
+            CLAY({
+                .layout = {
+                    .sizing = {
+                        .width = CLAY_SIZING_FIXED(scaled_width),
+                        .height = CLAY_SIZING_FIXED(scaled_height)
+                    }
+                },
+                .image = {
+                    .sourceDimensions = {scaled_width, scaled_height},
+                    // Pass the texture directly
+                    .imageData = editing_image,
+                }
+            }) {};
+        } else {
+            printf("No image to render\n");
+        }
+    }
+}
+
+int chargeTexture(const char *imgPath) {
+    if (loadImageBMPM(imgPath, &metadata, &originalImage)) {
+        editing_image = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, metadata.width, metadata.height);
+        if (!editing_image) {
+            fprintf(stderr, "Error: could not create texture from image: %s\n", SDL_GetError());
             free(originalImage);
             return 0;
         }
+        if (SDL_UpdateTexture(editing_image, NULL, originalImage, calculatePitch(&metadata)) != 0) {
+            fprintf(stderr, "Error: could not update texture: %s\n", SDL_GetError());
+            free(originalImage);
+            SDL_DestroyTexture(editing_image);
+            return 0;
+        }
+        SDL_SetTextureBlendMode(editing_image, SDL_BLENDMODE_BLEND);
         return 1;
     } else {
-        fprintf(stderr, "Error: could not create surface from image: %s\n", SDL_GetError());
+        fprintf(stderr, "Error: could not load image: %s\n", SDL_GetError());
         return 0;
     }
+}
+
+int chargeTexture_test() {
+    metadata.width = 64;
+    metadata.height = 64;
+
+    // No need for originalImage buffer anymore, create texture directly
+
+    editing_image = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_TARGET, metadata.width, metadata.height); // Use TARGET for direct manipulation
+    if (!editing_image) {
+        fprintf(stderr, "Error in chargeTexture_test: SDL_CreateTexture failed: %s\n", SDL_GetError());
+        return 0;
+    }
+
+    SDL_SetRenderTarget(renderer, editing_image); // Set texture as render target
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red
+    SDL_RenderClear(renderer); // Fill texture with red
+    SDL_SetRenderTarget(renderer, NULL); // Reset render target to window
+
+    SDL_SetTextureBlendMode(editing_image, SDL_BLENDMODE_BLEND);
+    printf("Test texture loaded successfully: %dx%d\n", metadata.width, metadata.height);
+    return 1;
 }
 
 int main(int argc, char *argv[]) {
@@ -376,110 +455,99 @@ int main(int argc, char *argv[]) {
     }
     if (TTF_Init() < 0) {
         fprintf(stderr, "Error: could not initialize TTF: %s\n", TTF_GetError());
+        SDL_Quit();
         return 1;
     }
     if (IMG_Init(IMG_INIT_PNG) < 0) {
         fprintf(stderr, "Error: could not initialize IMG: %s\n", IMG_GetError());
+        TTF_Quit();
+        SDL_Quit();
         return 1;
     }
 
+    // Load font
     TTF_Font *font = TTF_OpenFont("resources/Roboto-Regular.ttf", 16);
     if (!font) {
         fprintf(stderr, "Error: could not load font: %s\n", TTF_GetError());
         return 1;
     }
+    SDL2_Font fonts[1] = {0};
+    fonts[FontIdBody16] = (SDL2_Font){ .fontId = FontIdBody16, .font = font };
 
-    SDL2_Font fonts[1] = {};
-
-    fonts[FontIdBody16] = (SDL2_Font) {
-        .fontId = FontIdBody16,
-        .font = font,
-    };
-    chargeSurface("resources/noImage.bmp");
-    SDL_Renderer *renderer = NULL;
     if (SDL_CreateWindowAndRenderer(600, 400, SDL_WINDOW_RESIZABLE, &window, &renderer) < 0) {
-        fprintf(stderr, "Error: could not create window and renderer: %s", SDL_GetError());
+        fprintf(stderr, "Error: could not create window and renderer: %s\n", SDL_GetError());
+        return 1;
     }
 
+    // Reserve memory for Clay
     uint64_t totalMemorySize = Clay_MinMemorySize();
     void *memoryBuffer = malloc(totalMemorySize);
-    Clay_Arena clayMemory = Clay_CreateArenaWithCapacityAndMemory(totalMemorySize, memoryBuffer);
 
-    int windowWidth = 0;
-    int windowHeight = 0;
+    // Load an image
+    if (!chargeTexture("resources/test_org.bmp")) {
+        fprintf(stderr, "Failed to load image.\n");
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        IMG_Quit();
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    // Initialize Clay with current window dimensions
+    int windowWidth = 0, windowHeight = 0;
     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-    Clay_Initialize(clayMemory, (Clay_Dimensions) { (float)windowWidth, (float)windowHeight }, (Clay_ErrorHandler) { HandleClayErrors });
-
+    Clay_Arena clayMemory = Clay_CreateArenaWithCapacityAndMemory(totalMemorySize, memoryBuffer);
+    Clay_Initialize(clayMemory, (Clay_Dimensions){ (float)windowWidth, (float)windowHeight }, (Clay_ErrorHandler){ HandleClayErrors });
     Clay_SetMeasureTextFunction(SDL2_MeasureText, &fonts);
 
     Uint64 NOW = SDL_GetPerformanceCounter();
-    Uint64 LAST = 0;
+    Uint64 LAST = NOW;
     double deltaTime = 0;
 
     while (true) {
-        Clay_Vector2 scrollDelta = {};
+        Clay_Vector2 scrollDelta = {0};
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-                case SDL_QUIT: { goto quit; }
-                case SDL_MOUSEWHEEL: {
-                    scrollDelta.x = event.wheel.x;
-                    scrollDelta.y = event.wheel.y;
-                    break;
-                }
-                case SDL_WINDOWEVENT: {
-                    if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                        int newWidth = event.window.data1;
-                        int newHeight = event.window.data2;
-                        Clay_SetLayoutDimensions((Clay_Dimensions) { (float)newWidth, (float)newHeight });
-                    }
-                    break;
-                }
+            if (event.type == SDL_QUIT)
+                goto quit;
+            if (event.type == SDL_MOUSEWHEEL) {
+                scrollDelta.x = event.wheel.x;
+                scrollDelta.y = event.wheel.y;
+            }
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                Clay_SetLayoutDimensions((Clay_Dimensions){ (float)event.window.data1, (float)event.window.data2 });
             }
         }
         LAST = NOW;
         NOW = SDL_GetPerformanceCounter();
         deltaTime = (double)((NOW - LAST) * 1000 / (double)SDL_GetPerformanceFrequency());
 
-        int mouseX = 0;
-        int mouseY = 0;
+        int mouseX = 0, mouseY = 0;
         Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
-        Clay_Vector2 mousePosition = { (float)mouseX, (float)mouseY };
-        Clay_SetPointerState(mousePosition, mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+        Clay_SetPointerState((Clay_Vector2){ (float)mouseX, (float)mouseY }, mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
 
-        Clay_UpdateScrollContainers(
-            true,
-            (Clay_Vector2) { scrollDelta.x, scrollDelta.y },
-            deltaTime
-        );
+        Clay_UpdateScrollContainers(true, (Clay_Vector2){ scrollDelta.x, scrollDelta.y }, deltaTime);
 
         SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-        Clay_SetLayoutDimensions((Clay_Dimensions) { (float)windowWidth, (float)windowHeight });
+        Clay_SetLayoutDimensions((Clay_Dimensions){ (float)windowWidth, (float)windowHeight });
 
+        // Build layout
         Clay_RenderCommandArray renderCommands = CreateLayout();
+
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
-
         Clay_SDL2_Render(renderer, renderCommands, fonts);
-
         SDL_RenderPresent(renderer);
-
-        // Add a small delay to prevent the loop from consuming 100% CPU - 16 -> almost 60 fps
-        SDL_Delay(16);  //future test, try to use this to modify the consuming of the cpu
+        SDL_Delay(16);
     }
-
 quit:
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    if(originalImage) {
+    if (originalImage)
         free(originalImage);
-    }
-    if (editing_image) {
-        SDL_FreeSurface(editing_image);
-    }
-    if (memoryBuffer) {
+    if (memoryBuffer)
         free(memoryBuffer);
-    }
     IMG_Quit();
     TTF_Quit();
     SDL_Quit();
