@@ -75,6 +75,7 @@ int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** o
     metadata->yPixelsPerM = *(int32_t*)(header + 42);
     metadata->colorsUsed = *(uint32_t*)(header + 46);
     metadata->importantColors = *(uint32_t*)(header + 50);
+    metadata->angle = 0;
 
     // **Handle only supported cases**
     if ((metadata->bitsPerPixel == 24 && metadata->compression == 0) ||
@@ -216,16 +217,15 @@ int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char 
     int32_t oldRowSize = calculatePitch(metadata);
 
     // Swap width and height to rotate
-    int32_t temp = metadata->width;
-    metadata->width = metadata->height;
-    metadata->height = temp;
+    int32_t old_w = metadata->width;
+    int32_t old_h = metadata->height;
 
     int32_t newRowSize = calculatePitch(metadata);
 
 
 
     // Calculate new image size
-    size_t expectedSize = newRowSize * abs(metadata->height);
+    size_t expectedSize = newRowSize * abs(old_w);
 
     if (*originalImage == NULL) {
         puts("Error: originalImage is NULL!");
@@ -242,12 +242,12 @@ int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char 
 
     if(dir == 'r' || dir == 'l'){
         // Rotate the image
-        for (y = 0; y < metadata->width; y++) {
-            for (x = 0; x < metadata->height; x++) {
+        for (y = 0; y < old_h; y++) {
+            for (x = 0; x < old_w; x++) {
                 // Source pixel in original image
                 srcIndex = y * oldRowSize + x * bytesPerPixel;
-                if(dir == 'l') destIndex = x * newRowSize + (metadata->width - y - 1) * bytesPerPixel;
-                if(dir == 'r') destIndex = (metadata->height - x - 1) * newRowSize + y * bytesPerPixel;
+                if(dir == 'l') destIndex = x * newRowSize + (old_h - y - 1) * bytesPerPixel;
+                if(dir == 'r') destIndex = (old_w - x - 1) * newRowSize + y * bytesPerPixel;
                 // Copy pixel data
                 memcpy(&tempImage[destIndex], &(*originalImage)[srcIndex], bytesPerPixel);
             }
@@ -260,7 +260,6 @@ int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char 
     // Free old image and assign new one
     free(*originalImage);
     *originalImage = tempImage;
-
     return 1;
 }
 

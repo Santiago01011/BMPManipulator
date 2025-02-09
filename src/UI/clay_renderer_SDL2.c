@@ -1,4 +1,5 @@
 #include "clay.h"
+#include "../BMPManipulator/bmp_functions.h"
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_image.h>
@@ -12,6 +13,7 @@ typedef struct
     TTF_Font *font;
 } SDL2_Font;
 
+extern BMPMetadata metadata;
 
 static Clay_Dimensions SDL2_MeasureText(Clay_StringSlice text, Clay_TextElementConfig *config, void *userData)
 {
@@ -206,8 +208,10 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 break;
             }
             case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
-                //Clay_ImageRenderData *config = &renderCommand->renderData.image;
-                //SDL_Texture *texture = config->imageData;
+                // Clay_ImageRenderData *config = &renderCommand->renderData.image;
+                // SDL_Texture *texture = config->imageData;
+
+                SDL_Texture *texture = renderCommand->renderData.image.imageData;
 
                 SDL_Rect destination = (SDL_Rect){
                     .x = boundingBox.x,
@@ -216,7 +220,11 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                     .h = boundingBox.height,
                 };
 
-                SDL_RenderCopyEx(renderer, (SDL_Texture*)(&renderCommand->renderData.image.imageData), NULL, &destination, 0, NULL, SDL_FLIP_VERTICAL);
+                /*This is for my specific use case*/
+                SDL_RenderCopyEx(renderer, texture, NULL, &destination, metadata.angle, NULL, SDL_FLIP_VERTICAL);
+                /*This is more general*/
+                // SDL_RenderCopy(renderer, texture, NULL, &destination);
+
                 break;
             }
             case CLAY_RENDER_COMMAND_TYPE_BORDER: {

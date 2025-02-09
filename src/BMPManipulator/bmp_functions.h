@@ -31,6 +31,7 @@ typedef struct {
     int32_t yPixelsPerM;    // Vertical resolution
     uint32_t colorsUsed;    // Number of colors in palette
     uint32_t importantColors;
+    short angle;            // To display rotated images, not used for file values
 } BMPMetadata;
 
 typedef struct {

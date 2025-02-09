@@ -43,15 +43,25 @@ typedef enum {
     ACTION_NONE
 } ButtonAction;
 
+typedef enum {
+    ANIMATION_STATE_NONE,      // No animation active
+    ANIMATION_STATE_ROTATING_RIGHT, // Rotating right animation
+    ANIMATION_STATE_ROTATING_LEFT,  // Rotating left animation
+    // Add more animation states here in the future (e.g., ANIMATION_STATE_ZOOMING, ANIMATION_STATE_FADING)
+} AnimationState;
+
 unsigned char* originalImage = NULL;
+unsigned char* backUpImage = NULL;
 SDL_Texture *editing_image = NULL;
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 BMPMetadata metadata;
+short finalAngleAfterRotation;
+AnimationState currentAnimationState = ANIMATION_STATE_NONE;
 
 
 
-int chargeSurface(const char *imgPath);
+int chargeTexture(const char *imgPath);
 
 void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t userData) {
     if (pointerData.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
@@ -67,16 +77,21 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 printf("Rotate function called!\n");
                 // Call rotation function here
                 rotateBMPM(&metadata, &originalImage, 'r');
-                //editing_image = SDL_CreateRGBSurfaceFrom(originalImage,  metadata.width, metadata.height, metadata.bitsPerPixel, calculatePitch(&metadata), 0x00FF0000/* Red mask */, 0x0000FF00/* Green mask */, 0x000000FF/* Blue mask*/, 0xFF000000/* Alpha mask*/ );
-                SDL_UpdateTexture(editing_image, NULL, originalImage, calculatePitch(&metadata));
-                break;
+                currentAnimationState = ANIMATION_STATE_ROTATING_RIGHT;
 
+                finalAngleAfterRotation += 90;
+                if(finalAngleAfterRotation >= 360)
+                    finalAngleAfterRotation = 0;
+                break;
             case ACTION_ROTATE_LEFT:
                 printf("Rotate function called!\n");
                 // Call rotation function here
                 rotateBMPM(&metadata, &originalImage, 'l');
-                //editing_image = SDL_CreateRGBSurfaceFrom(originalImage,  metadata.width, metadata.height, metadata.bitsPerPixel, calculatePitch(&metadata), 0x00FF0000/* Red mask */, 0x0000FF00/* Green mask */, 0x000000FF/* Blue mask*/, 0xFF000000/* Alpha mask*/ );
+                currentAnimationState = ANIMATION_STATE_ROTATING_LEFT;
 
+                finalAngleAfterRotation -= 90;
+                if(finalAngleAfterRotation <= -360)
+                    finalAngleAfterRotation = 0;
                 break;
 
             case ACTION_CHANGE_RGB:
@@ -144,11 +159,13 @@ void RenderDropdownMenuItem(Clay_String text) {
     }
 }
 
-/*void RenderCentralPanel() {
-    int mainWwidth, mainWheight, scaled_width, scaled_height;
+void RenderCentralPanel() {
+    int mainWwidth = 0, mainWheight = 0, img_width = 0, img_height = 0;
     SDL_GetWindowSize(window, &mainWwidth, &mainWheight);
+    int scaled_width = 0, scaled_height = 0;
 
-    CLAY({ //new implementation of Clay
+    // Central panel container
+    CLAY({
         .id = CLAY_ID("CentralPanel"),
         .backgroundColor = BackgroundColor,
         .layout = {
@@ -158,30 +175,32 @@ void RenderDropdownMenuItem(Clay_String text) {
             .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
         },
         .cornerRadius = CLAY_CORNER_RADIUS(5)
-
     }) {
-        if (originalImage) {
-            int img_width = metadata.width;
-            int img_height = metadata.height;
+        if (!originalImage) {
+            printf("No image to render\n");
+            return;
+        } //mod
+            img_width = metadata.width;
+            img_height = metadata.height;
 
-            // Get the available space in the parent container
+
+            // printf("Image dimensions: %dx%d\n", img_width, img_height);
+
+            // Calculations for available space; adjust BOX_PADD and BOX_H as defined in your project
             int available_width = mainWwidth - BOX_PADD;
             int available_height = mainWheight - (BOX_PADD * 2) - (BOX_H * 2);
-
-            // Calculate the scaling factor to fit the image within the available space
             float scale_width = (float)available_width / (float)img_width;
             float scale_height = (float)available_height / (float)img_height;
             float scale = (scale_width < scale_height) ? scale_width : scale_height;
 
-            // Calculate the scaled dimensions
-            if(img_height > available_height || img_width > available_width){
+            if (img_height > available_height || img_width > available_width) {
                 scaled_width = (int)(img_width * scale);
                 scaled_height = (int)(img_height * scale);
             } else {
                 scaled_width = img_width;
                 scaled_height = img_height;
             }
-            // Render the scaled image
+            // printf("Scaled dimensions: %dx%d\n", scaled_width, scaled_height);
             CLAY({
                 .layout = {
                     .sizing = {
@@ -191,15 +210,12 @@ void RenderDropdownMenuItem(Clay_String text) {
                 },
                 .image = {
                     .sourceDimensions = {scaled_width, scaled_height},
-                    .imageData = editing_image,
+                    // Pass the texture directly
+                    .imageData = editing_image
                 }
-            }) {}
-        } else {
-            printf("No image to render\n");
-        }
+            }) {};
     }
 }
-*/
 
 
 void RenderEditButtons() {
@@ -316,11 +332,15 @@ static Clay_RenderCommandArray CreateLayout() {
                         CLAY({ .layout = { .layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.height = CLAY_SIZING_GROW(0), .width = CLAY_SIZING_FIXED(BTN_W)} } })
                         {
                             // Render dropdown items here
-                            CLAY({ .id = CLAY_ID("open_file"), .layout = {.sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}}, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}})
+                            CLAY({ .id = CLAY_ID("open_file_btn"), .layout = {.sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}}, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}})
                             {
                                 Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE); CLAY_TEXT(CLAY_STRING("Open"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                             }
-                            RenderDropdownMenuItem(CLAY_STRING("Close"));
+                            CLAY({ .id = CLAY_ID("close_file_btn"), .layout = {.sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}}, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}})
+                            {
+                                Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE); CLAY_TEXT(CLAY_STRING("Close"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
+                            }
+
                         }
                     }
                 }
@@ -345,66 +365,9 @@ void HandleClayErrors(Clay_ErrorData errorData) {
     printf("%s", errorData.errorText.chars);
 }
 
-void RenderCentralPanel() {
-    int mainWwidth = 0, mainWheight = 0;
-    SDL_GetWindowSize(window, &mainWwidth, &mainWheight);
-    int scaled_width = 0, scaled_height = 0;
-
-    // Central panel container
-    CLAY({
-        .id = CLAY_ID("CentralPanel"),
-        .backgroundColor = BackgroundColor,
-        .layout = {
-            .sizing = { .width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_GROW(0) },
-            .padding = CLAY_PADDING_ALL(0),
-            .childGap = 0,
-            .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
-        },
-        .cornerRadius = CLAY_CORNER_RADIUS(5)
-    }) {
-        if (editing_image) { //mod
-            int img_width = metadata.width;
-            int img_height = metadata.height;
-
-            // Calculations for available space; adjust BOX_PADD and BOX_H as defined in your project
-            int available_width = mainWwidth - BOX_PADD;
-            int available_height = mainWheight - (BOX_PADD * 2) - (BOX_H * 2);
-            float scale_width = (float)available_width / (float)img_width;
-            float scale_height = (float)available_height / (float)img_height;
-            float scale = (scale_width < scale_height) ? scale_width : scale_height;
-
-            if (img_height > available_height || img_width > available_width) {
-                scaled_width = (int)(img_width * scale);
-                scaled_height = (int)(img_height * scale);
-            } else {
-                scaled_width = img_width;
-                scaled_height = img_height;
-            }
-
-            // Debug printout
-            printf("Rendering image with scaled dimensions: %dx%d (Original: %dx%d)\n",
-                   scaled_width, scaled_height, img_width, img_height);
-
-            CLAY({
-                .layout = {
-                    .sizing = {
-                        .width = CLAY_SIZING_FIXED(scaled_width),
-                        .height = CLAY_SIZING_FIXED(scaled_height)
-                    }
-                },
-                .image = {
-                    .sourceDimensions = {scaled_width, scaled_height},
-                    // Pass the texture directly
-                    .imageData = editing_image,
-                }
-            }) {};
-        } else {
-            printf("No image to render\n");
-        }
-    }
-}
-
 int chargeTexture(const char *imgPath) {
+    currentAnimationState = ANIMATION_STATE_NONE;
+    finalAngleAfterRotation = 0;
     if (loadImageBMPM(imgPath, &metadata, &originalImage)) {
         editing_image = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, metadata.width, metadata.height);
         if (!editing_image) {
@@ -535,7 +498,31 @@ int main(int argc, char *argv[]) {
         // Build layout
         Clay_RenderCommandArray renderCommands = CreateLayout();
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        /*this switch is for animation control*/
+        switch(currentAnimationState){
+            case ANIMATION_STATE_ROTATING_RIGHT:
+                if(finalAngleAfterRotation > 0){
+                    metadata.angle += 5;
+                    finalAngleAfterRotation -=5;
+                    if(metadata.angle >= 360)
+                        metadata.angle -= 360;
+                } else {
+                    currentAnimationState = ANIMATION_STATE_NONE;
+                }
+                break;
+            case ANIMATION_STATE_ROTATING_LEFT:
+                if(finalAngleAfterRotation < 0){
+                    metadata.angle -= 5;
+                    finalAngleAfterRotation += 5;
+                    if(metadata.angle <= -360)
+                        metadata.angle += 360;
+                } else {
+                    currentAnimationState = ANIMATION_STATE_NONE;
+                }
+                break;
+        }
+
+        SDL_SetRenderDrawColor(renderer, 8, 8, 8, 8);
         SDL_RenderClear(renderer);
         Clay_SDL2_Render(renderer, renderCommands, fonts);
         SDL_RenderPresent(renderer);
