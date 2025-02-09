@@ -463,7 +463,7 @@
 1738713768 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\funciones_estudiante.h
 	"constantes.h"
 
-1739075439 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\main.c
+1739077775 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\main.c
 	"UI/clay.h"
 	"UI/clay_renderer_SDL2.c"
 	"BMPManipulator/bmp_functions.h"

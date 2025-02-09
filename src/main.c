@@ -17,7 +17,7 @@
 /**Buttons defines**/
 #define BOX_PADD 20
 #define BOX_H 40
-#define BTN_H 25
+#define BTN_H 30
 #define BTN_W 75
 
 
