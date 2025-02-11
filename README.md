@@ -34,20 +34,6 @@ To get started with BMPM, you will need to follow these steps:
 
 Upon running BMPM, you will be presented with a simple user interface that allows you to load a BMP image file and perform basic image manipulations.  The interface includes buttons for simple editing operations, such as rotating the image left or right.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### Prerequisites
 
 *   **SDL2 Library:** You need both the SDL2 runtime library and development headers. Installation instructions vary by operating system. Refer to the [SDL2 website](https://www.libsdl.org/download-2.0.php).
@@ -55,34 +41,3 @@ Upon running BMPM, you will be presented with a simple user interface that allow
 *   **C Compiler:** You will need a C compiler toolchain, such as GCC (for Linux/macOS/MinGW on Windows), Clang, or Microsoft Visual C++ (MSVC) Build Tools.
 *   **Build System (Optional):** While not strictly required, using a build system like CMake can simplify the build process, especially for cross-platform projects.  Alternatively, you can use an IDE like CodeBlocks which often manages the build process.
 
-### Building and Running
-
-The build process for BMPM might vary depending on your development environment and operating system.
-
-**General Build Steps (Conceptual):**
-
-1.  **Obtain the source code:**  Download or clone the BMPM project source code.
-2.  **Compile the code:** Use a C compiler to compile the C source files (`.c` files) of the BMPM project. You will need to link against the SDL2 and SDL2\_ttf libraries.
-3.  **Link libraries:**  Ensure you link against the necessary SDL2 libraries (SDL2, SDL2main, SDL2\_ttf).
-4.  **Create executable:** The compilation and linking process should produce an executable file (e.g., `BMPM` or `BMPM.exe`).
-5.  **Run the executable:** Execute the compiled BMPM program.
-
-**Using CodeBlocks (Example):**
-
-If you are using CodeBlocks IDE, you can typically:
-
-1.  **Create a new project:** Create a new "Console application" or "SDL2 project" in CodeBlocks and import the BMPM source files.
-2.  **Configure build settings:**  In your CodeBlocks project settings, ensure that the project is configured to link against the SDL2 and SDL2\_ttf libraries. You may need to specify the directories where these libraries are installed (include paths and library paths).
-3.  **Build the project:** Use CodeBlocks' "Build" or "Build and Run" options to compile and run the project.
-
-**Using CMake (More Advanced, Cross-Platform):**
-
-For more cross-platform building and for larger projects, CMake is recommended.  Refer to the previous "Getting Started" section draft for CMake instructions (which you can include in your README if you want to provide CMake build steps).
-
-### Running BMPM
-
-Once built, run the BMPM executable from your terminal or file explorer.
-
-```bash
-./BMPM  # Linux/macOS
-BMPM.exe # Windows
