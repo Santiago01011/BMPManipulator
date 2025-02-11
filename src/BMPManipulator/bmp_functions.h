@@ -46,10 +46,10 @@ typedef struct {
 
 
 int calculatePitch(BMPMetadata* metadata);
-int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** originalImage);
-int grayScaleBMPM(BMPMetadata* metadata, unsigned char* originalImage);
-int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char dir);
-
-
+int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** pixels);
+int grayScaleBMPM(BMPMetadata* metadata, unsigned char* pixels);
+int changeRGBvalues(BMPMetadata * metadata, unsigned char* pixels, float r, float g, float b);
+int rotateBMPM(BMPMetadata *metadata, unsigned char** pixels, const char dir);
+void swapIfRotated(BMPMetadata* metadata);
 
 #endif // BMP_FUNCTIONS_H_INCLUDED

@@ -2,29 +2,6 @@
 
 
 /*
-    // Header check zone
-    printf("Image header:\n");
-    printf("%s\n", metadata->signature);
-    printf("File size: %d\n", metadata->fileSize);
-    printf("Reserved: %d\n", metadata->reserved);
-    printf("Data offset: %d\n", metadata->dataOffset);
-    printf("Header size: %d\n", metadata->headerSize);
-    printf("Width: %d\n", metadata->width);
-    printf("Height: %d\n", metadata->height);
-    printf("Planes: %d\n", metadata->planes);
-    printf("Bits per pixel: %d\n", metadata->bitsPerPixel);
-    printf("Compression: %d\n", metadata->compression);
-    printf("Image size: %d\n", metadata->imageSize);
-    printf("X pixels per meter: %d\n", metadata->xPixelsPerM);
-    printf("Y pixels per meter: %d\n", metadata->yPixelsPerM);
-    printf("Colors used: %d\n", metadata->colorsUsed);
-    printf("Important colors: %d\n", metadata->importantColors);
-    // Header check ends
-    if (metadata->bitsPerPixel != 24 || metadata->compression != 0){
-        printf("The file %s is not a supported file (compression)\n", filePath);
-        fclose(imgFile);
-        return 0;
-    }
 
     // Calculate row size and padding
 
@@ -43,7 +20,7 @@ int calculatePitch(BMPMetadata* metadata) {
 }
 
 
-int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** originalImage) {
+int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** pixels) {
     FILE *imgFile = fopen(filePath, "rb");
     if (!imgFile) {
         printf("Error opening file: %s\n", filePath);
@@ -93,7 +70,6 @@ int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** o
             fread(&greenMask, sizeof(uint32_t), 1, imgFile);
             fread(&blueMask, sizeof(uint32_t), 1, imgFile);
             fread(&alphaMask, sizeof(uint32_t), 1, imgFile);
-            printf("Bit masks - R: 0x%X, G: 0x%X, B: 0x%X, A: 0x%X\n", redMask, greenMask, blueMask, alphaMask);
         }
 
         // Calculate row size and allocate memory
@@ -101,28 +77,28 @@ int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** o
         const int expectedSize = rowSize * abs(metadata->height);
 
 
-        *originalImage = (unsigned char*)malloc(expectedSize);
-        if(!(*originalImage)){
+        *pixels = (unsigned char*)malloc(expectedSize);
+        if(!(*pixels)){
             printf("memory not alocated");
             return 0;
         }
         fseek(imgFile, metadata->dataOffset, SEEK_SET);
 
-        if (fread(*originalImage, expectedSize, 1, imgFile) != 1) {
+        if (fread(*pixels, expectedSize, 1, imgFile) != 1) {
             puts("Error reading pixel data");
-            free(*originalImage);
+            free(*pixels);
             fclose(imgFile);
             return 0;
         }
-        // **BGR to RGB byte swap for 24-bit BMP**
-        if (metadata->bitsPerPixel == 24) {
-            unsigned char *pixels = *originalImage;
-            for (int i = 0; i < metadata->width * metadata->height; ++i) {
-                unsigned char temp = pixels[i * 3];       // Blue
-                pixels[i * 3] = pixels[i * 3 + 2];    // Blue becomes Red
-                pixels[i * 3 + 2] = temp;               // Red becomes Blue
-            }
-        }
+//        // **BGR to RGB byte swap for 24-bit BMP**
+//        if (metadata->bitsPerPixel == 24) {
+//            unsigned char *pixels = *pixels;
+//            for (int i = 0; i < metadata->width * metadata->height; ++i) {
+//                unsigned char temp = pixels[i * 3];       // Blue
+//                pixels[i * 3] = pixels[i * 3 + 2];    // Blue becomes Red
+//                pixels[i * 3 + 2] = temp;               // Red becomes Blue
+//            }
+//        }
 
         fclose(imgFile);
         return 1;
@@ -134,9 +110,9 @@ int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** o
 }
 
 
-int grayScaleBMPM(BMPMetadata * metadata, unsigned char* originalImage){
+int grayScaleBMPM(BMPMetadata * metadata, unsigned char* pixels){
     for(int i = 0; i < metadata->height * metadata ->width; i++){
-        unsigned char *pixel = &originalImage[i * (metadata->bitsPerPixel / 8)];
+        unsigned char *pixel = &pixels[i * (metadata->bitsPerPixel / 8)];
 
         // Compute grayscale value
         //unsigned char gray = (pixel[0] + pixel[1] + pixel[2]) / 3;
@@ -152,64 +128,17 @@ int grayScaleBMPM(BMPMetadata * metadata, unsigned char* originalImage){
     return 1;
 }
 
-/*int rotateRightBMPM(BMPMetadata *metadata, unsigned char** originalImage) {
-    int oldWidth = metadata->width;
-    int oldHeight = metadata->height;
-    int bytesPerPixel = metadata->bitsPerPixel / 8;
-
-    // Swap width and height
-    metadata->width = oldHeight;
-    metadata->height = oldWidth;
-
-    // Calculate new image size
-    int newRowSize = calculatePitch(metadata);
-    int expectedSize = newRowSize * abs(metadata->height);
-
-    printf("Rotate function called!\n");
-    printf("Rotating: Old Size: %dx%d, New Size: %dx%d, BytesPerPixel: %d\n",
-           oldWidth, oldHeight, metadata->width, metadata->height, bytesPerPixel);
-    printf("Expected Image Size: %d\n", expectedSize);
-
-    if (*originalImage == NULL) {
-        puts("Error: originalImage is NULL!");
-        return 1;
+int changeRGBvalues(BMPMetadata * metadata, unsigned char* pixels, float r, float g, float b){
+    for(int i = 0; i < metadata->height * metadata->width; i++){
+        unsigned char *pixel = &pixels[i * (metadata->bitsPerPixel / 8)];
+        pixel[0] = (pixel[0] * b) < 255 ? pixel[0] * b : 255; //Blue
+        pixel[1] = (pixel[1] * g) < 255 ? pixel[1] * g : 255; //Green
+        pixel[2] = (pixel[2] * r) < 255 ? pixel[2] * r : 255; //Red
     }
+    return 1;
+}
 
-    unsigned char *tempImage = (unsigned char*)malloc(expectedSize);
-    if (!tempImage) {
-        puts("Error allocating memory for rotateRightBMP");
-        return 1;
-    }
-
-    memset(tempImage, 0, expectedSize);  // Ensure all memory is initialized
-
-    for (int y = 0; y < oldHeight; y++) {
-        for (int x = 0; x < oldWidth; x++) {
-            // Source pixel in original image
-            int srcIndex = (y * oldWidth + x) * bytesPerPixel;
-
-            // Destination pixel in rotated image
-            int destIndex = ((x * oldHeight) + (oldHeight - y - 1)) * bytesPerPixel;
-
-            if (srcIndex >= expectedSize || destIndex >= expectedSize) {
-                printf("ERROR: Out-of-bounds access! srcIndex: %d, destIndex: %d\n", srcIndex, destIndex);
-                free(tempImage);
-                return 1;
-            }
-
-            memcpy(&tempImage[destIndex], &(*originalImage)[srcIndex], bytesPerPixel);
-        }
-    }
-
-    // Free old image and assign new one
-    free(*originalImage);
-    *originalImage = tempImage;
-
-    return 0;
-}*/
-
-
-int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char dir) {
+int rotateBMPM(BMPMetadata *metadata, unsigned char** pixels, const char dir) {
     int srcIndex, destIndex, x, y;
     int bytesPerPixel = metadata->bitsPerPixel / 8;
 
@@ -227,8 +156,8 @@ int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char 
     // Calculate new image size
     size_t expectedSize = newRowSize * abs(old_w);
 
-    if (*originalImage == NULL) {
-        puts("Error: originalImage is NULL!");
+    if (*pixels == NULL) {
+        puts("Error: pixels is NULL!");
         return 0;
     }
 
@@ -249,7 +178,7 @@ int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char 
                 if(dir == 'l') destIndex = x * newRowSize + (old_h - y - 1) * bytesPerPixel;
                 if(dir == 'r') destIndex = (old_w - x - 1) * newRowSize + y * bytesPerPixel;
                 // Copy pixel data
-                memcpy(&tempImage[destIndex], &(*originalImage)[srcIndex], bytesPerPixel);
+                memcpy(&tempImage[destIndex], &(*pixels)[srcIndex], bytesPerPixel);
             }
         }
     } else {
@@ -258,8 +187,8 @@ int rotateBMPM(BMPMetadata *metadata, unsigned char** originalImage, const char 
     }
 
     // Free old image and assign new one
-    free(*originalImage);
-    *originalImage = tempImage;
+    free(*pixels);
+    *pixels = tempImage;
     return 1;
 }
 

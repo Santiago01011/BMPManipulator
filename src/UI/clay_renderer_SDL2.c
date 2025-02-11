@@ -221,7 +221,8 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 };
 
                 /*This is for my specific use case*/
-                SDL_RenderCopyEx(renderer, texture, NULL, &destination, metadata.angle, NULL, SDL_FLIP_VERTICAL);
+                printf("%d\n", metadata.angle);
+                SDL_RenderCopyEx(renderer, texture, NULL, &destination, metadata.angle, 0, SDL_FLIP_VERTICAL);
                 /*This is more general*/
                 // SDL_RenderCopy(renderer, texture, NULL, &destination);
 

@@ -463,7 +463,7 @@
 1738713768 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\funciones_estudiante.h
 	"constantes.h"
 
-1739077775 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\main.c
+1739250334 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\main.c
 	"UI/clay.h"
 	"UI/clay_renderer_SDL2.c"
 	"BMPManipulator/bmp_functions.h"
@@ -473,7 +473,8 @@
 	<stdint.h>
 	<stdlib.h>
 	<stdio.h>
-	"UI/ui.c"
+	"UI/clay_elements.h"
+	"Utils/textures_utils.h"
 
 1738861020 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay.h
 	"clay.h"
@@ -483,7 +484,7 @@
 	<emmintrin.h>
 	<arm_neon.h>
 
-1739074491 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
+1739251089 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
 	"clay.h"
 	"../BMPManipulator/bmp_functions.h"
 	<SDL.h>
@@ -491,7 +492,7 @@
 	<SDL_image.h>
 	<stdio.h>
 
-1739074491 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
+1739251089 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_renderer_sdl2.c
 	"clay.h"
 	"../BMPManipulator/bmp_functions.h"
 	<SDL.h>
@@ -499,10 +500,10 @@
 	<SDL_image.h>
 	<stdio.h>
 
-1739070780 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.c
+1739249775 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.c
 	"bmp_functions.h"
 
-1739057084 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.h
+1739246002 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\bmpmanipulator\bmp_functions.h
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
@@ -517,4 +518,23 @@
 1738811452 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\ui.c
 	"clay.h"
 	<stdio.h>
+
+1739250933 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_elements.c
+	"clay.h"
+	"clay_elements.h"
+	<SDL.h>
+	<stdio.h>
+	"../BMPManipulator/bmp_functions.h"
+	"../Utils/textures_utils.h"
+	<stdlib.h>
+
+1739234512 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\ui\clay_elements.h
+
+1739206392 c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\utils\textures_utils.h
+	<SDL.h>
+	<stdio.h>
+	"../BMPManipulator/bmp_functions.h"
+
+1739213304 source:c:\users\zapatasantiago\documents\cprojects\bmpmanipulator\src\utils\textures_utils.c
+	"textures_utils.h"
 
