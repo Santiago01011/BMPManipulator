@@ -1,13 +1,24 @@
 #ifndef CLAY_ELEMENTS_H_INCLUDED
 #define CLAY_ELEMENTS_H_INCLUDED
+/*BMPManipulator\src\UI\clay_elements.h*/
 
 /**Buttons defines**/
-#define BOX_PADD 20
-#define BOX_H 40
-#define BTN_H 30
-#define BTN_W 75
+#define BOX_PADD 20 // Most of the components use this as the padding
+#define BOX_H 40 // Top and Bottom panels heights
+#define BTN_H 30 // Most of the buttons use this as the height
+#define BTN_W 75 // Most of the buttons use this as the width
 
+
+/**
+ * @brief Enumeration of possible actions for the BMPM UI buttons.
+ *
+ * This enumeration defines the possible button actions that can be performed to the
+ * image displayed in the central panel of the BMPM UI.
+ *
+ * \since BMPM 0.1.0
+ */
 typedef enum {
+    ACTION_TOGGLE_EDIT_MENU,
     ACTION_CUT,
     ACTION_ROTATE,
     ACTION_ROTATE_RIGHT,
@@ -16,11 +27,14 @@ typedef enum {
     ACTION_CHANGE_R,
     ACTION_CHANGE_G,
     ACTION_CHANGE_B,
-    ACTION_SCALE,
     ACTION_GRAYSCALE,
-    ACTION_OPEN_FILE,
-    ACTION_OPEN_EDIT_MENU,
+    ACTION_SCALE,
     ACTION_OPEN_FILE_MENU,
+    ACTION_OPEN_FILE,
+    ACTION_INPUT_FILEPATH_FOCUS,
+    ACTION_CLOSE_FILE,
+    ACTION_OPEN_EDIT_MENU,
+    ACTION_SAVE_FILE,
     ACTION_NONE
 } ButtonAction;
 
@@ -46,17 +60,32 @@ typedef enum {
  *
  * This structure is used by the `_calculateDisplayImgDimentions` function to
  * return the scaled width and height of the image to be displayed in the central panel.
+ *
+ * \since BMPM 0.1.0
  */
 typedef struct {
     int width;
     int height;
 } DisplayImgDimensions;
 
+/**
+ * @brief This function has the job of managing the button actions.
+ *
+ * This function is responsible of manage and perform the button actions of the BMPM UI.
+ * It receives Clay structures for manage what button is hovered and determine if the mouse was
+ * clicked in this frame, if true, performs the action passed through the userData parameter.
+ *
+ * \param elementId    The ID of the Clay element (button) that was interacted with.
+ * \param pointerData  Structure containing pointer (mouse) event data from Clay.
+ * \param userData     Custom data associated with the button, expected to be a ButtonAction enum.
+ *
+ * \since BMPM 0.1.0
+ *
+ * \sa RenderButton
+ */
 void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t userData);
-void RenderButton(Clay_String text, ButtonAction action);
-void RenderDropdownMenuItem(Clay_String text);
 
-/**|
+/**
  * @brief Generates the central panel render command of the BMPM UI, displaying the editing image.
  *
  * It performs the following steps:
@@ -80,32 +109,13 @@ void RenderDropdownMenuItem(Clay_String text);
  *
  * \since BMPM 0.1.0
  *
- * \see _calculateDisplayImgDimentions - Function called to calculate the scaled image dimensions.
+ * \sa _calculateDisplayImgDimentions - Function called to calculate the scaled image dimensions.
  *
  * **Global Variables Used (extern, defined in main.c):**
  * - `originalImage`:   Pointer to the original loaded BMP image data.
  * - `editing_image`:   SDL_Texture representing the image being edited, ready for rendering.
  */
 void RenderCentralPanel();
-/**
- * @brief Calculates scaled image dimensions for display within the central panel.
- *
- * This function determines the scale, if needed, to display the image in the available space.
- *
- * The calculation takes into account:
- *  - The current dimensions of the main window.
- *  - Predefined padding and header/button box heights that define the available
- *    space within the central panel.
- *  - Image rotation: If the image is rotated vertically, the available
- *    width and height are swapped during scaling to reflect the new image dimentions.
- *
- * \returns DisplayImgDimensions A structure containing the calculated scaled width and height.
- *
- * \since BMPM 0.1.0
- *
- * \sa RenderCentralPanel
- */
-DisplayImgDimensions _calculateDisplayImgDimentions();
 
 /**
  * @brief Renders the bottom panel that holds the buttons to edit the image.
@@ -125,10 +135,21 @@ DisplayImgDimensions _calculateDisplayImgDimentions();
  *
  * \since BMPM 0.1.0
  *
- * \see RenderButton
+ * \sa RenderButton
  */
 void RenderEditButtons();
+/**
+* @brief This function sets up the begin and end of the Clay layout design.
+*
+* Inside this functions are declared all the components, or the functions that declare that
+* components.
+*
+* \since BMPM 0.1.0
+*
+* \sa RenderEditButtons, RenderCentralPanel, RenderDropdownMenuItem
+*/
 Clay_RenderCommandArray CreateLayout();
 
+void HandleFilePathInputClick(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t userData);
 
 #endif // CLAY_ELEMENTS_H_INCLUDED

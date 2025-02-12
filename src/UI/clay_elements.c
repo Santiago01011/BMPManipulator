@@ -1,18 +1,20 @@
-#include "clay.h"          // Clay UI header
-#include "clay_elements.h" // Include its own header
-//#include "clay_renderer_SDL2.c" // not used here
-#include <SDL.h>         // SDL (you might need SDL_rect.h etc. if used in UI functions)
-#include <stdio.h>         // for printf, etc.
-#include "../BMPManipulator/bmp_functions.h" // For BMPMetadata and rotateBMPM if used in UI actions
+#include "clay.h"
+#include "clay_elements.h"
+#include <SDL.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "../BMPManipulator/bmp_functions.h"
 #include "../Utils/textures_utils.h"
 
-#include <stdlib.h>
+/*BMPManipulator\src\UI\clay_elements.c*/
 
 const Clay_Color ColorWhite = { 255, 255, 255, 255};
 const Clay_Color FullBackgroundColor = (Clay_Color){39, 54, 61 ,255}; //rgb(39, 54, 61)
 const Clay_Color BackgroundColor = (Clay_Color){47, 62, 70 ,255}; //rgb(47, 62, 70)
 const Clay_Color ButtonColor = (Clay_Color){53, 79, 82, 255}; //rgb(53, 79, 82)
 const Clay_Color ButtonHoverColor = (Clay_Color){82, 121, 111, 100}; // rgb(82, 121, 111)
+
+bool isFileMenuFocused;
 
 extern unsigned char* originalImage;
 extern unsigned char* backUpImage;
@@ -24,14 +26,36 @@ extern short finalAngleAfterRotation;
 extern AnimationState currentAnimationState;
 extern const int FontIdBody16;
 
+extern bool isFilePathInputFocused;
+extern char filePathBuffer[256];
+
+static DisplayImgDimensions _calculateDisplayImgDimentions();
+
+
 void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t userData) {
     if (pointerData.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
         ButtonAction action = (ButtonAction)userData;
 
         switch (action) {
-            case ACTION_CUT:
-                printf("Cut function called!\n");
-                // Call cut function here
+            case ACTION_INPUT_FILEPATH_FOCUS:
+                isFilePathInputFocused = true;
+                filePathBuffer[0] = '\0';
+                SDL_StartTextInput();
+                printf("File Path Input Focused (input area click)!\n"); // Debugging
+                break;
+
+            case ACTION_OPEN_FILE:
+                if(isFilePathInputFocused)
+                    isFilePathInputFocused = false;
+                else
+                    isFilePathInputFocused = true;
+                break;
+
+            case ACTION_OPEN_FILE_MENU:
+                if(isFileMenuFocused)
+                    isFileMenuFocused = false;
+                else
+                    isFileMenuFocused = true;
                 break;
 
             case ACTION_ROTATE_RIGHT:
@@ -48,6 +72,7 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 if(finalAngleAfterRotation >= 360)
                     finalAngleAfterRotation = 0;
                 break;
+
             case ACTION_ROTATE_LEFT:
                 backUpImage = (unsigned char*)malloc(metadata.height * calculatePitch(&metadata));
                 if(!backUpImage){
@@ -116,21 +141,6 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 free(backUpImage);
                 break;
 
-            case ACTION_OPEN_FILE:
-                printf("Opening file...\n");
-
-                char imgPath[256];
-                printf("Enter the path of the image: ");
-                scanf("%255s", imgPath);
-
-                if (chargeTexture(imgPath)) {
-                    printf("Image loaded successfully.\n");
-                } else {
-                    chargeTexture("resources/noImage.bmp");
-                }
-
-                break;
-
             default:
                 printf("Unknown action\n");
                 break;
@@ -138,67 +148,13 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
     }
 }
 
-void RenderButton(Clay_String text, ButtonAction action) {
-    CLAY({
-        .layout = {
-            .padding = {BOX_PADD, BOX_PADD, 0, 0},
-            .sizing = {.height = BTN_H},
-            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER}
-        },
-        .backgroundColor = Clay_Hovered() ? ButtonHoverColor : ButtonColor,
-        .cornerRadius = CLAY_CORNER_RADIUS(6),
-        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
-    }) {
-        Clay_OnHover(HandleButtonClick, (intptr_t)action); // Attach event handler
-        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
-            .fontId = FontIdBody16,
-            .fontSize = 12,
-            .textColor = ColorWhite
-        }));
-    }
-}
+/*
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
+aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint
+occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+*/
 
-/**
- * @brief Renders a dropdown menu item with the specified text.
- *
- * This function creates a dropdown menu item using the CLAY macro. The item includes properties such as layout, background color,
- * border, and text configuration.
- *
- * Steps performed by this function:
- *
- * 1. **Define Layout and Styling:** Uses the CLAY macro to define the layout, sizing, child alignment, padding, background color,
- * and border of the dropdown menu item. The background color changes based on whether the item is hovered.
- * 2. **Render Text:** Uses the CLAY_TEXT macro to render the provided text within the dropdown menu item. The text configuration
- * includes font ID, font size, and text color.
- *
- * \param text The text to be displayed in the dropdown menu item.
- *
- * \since BMPM 0.1.0
- */
-void RenderDropdownMenuItem(Clay_String text) {
-    CLAY({.layout = {.sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}}, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}})
-    {
-        CLAY_TEXT(text, CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
-    }
-}
-
-/**
- * @brief Generates the central panel render command of the BMPM UI, displaying the editing image.
- *
- * This function performs the following steps:
- *
- * 1. **Creates Central Panel Container:** Uses the CLAY macro to define a container for the central panel. This container provides
- * background color, layout properties (growable width/height, padding, child alignment), and rounded corners.
- * 2. **Checks for Image Availability:** Verifies if `originalImage` is loaded. If not (NULL), it prints a "No image to render" message
- * to the console and returns early, preventing rendering of an empty panel.
- * 3. **Calculates Scaled Dimensions:** Calls the `_calculateDisplayImgDimentions` function to determine the appropriately scaled width
- * and height for the image to fit within the central panel while maintaining aspect ratio.
- * 4. **Renders Image:** Uses the CLAY macro again to render the image itself within the central panel container. It sets the layout to
- * a fixed size based on the calculated `scaledDimensions` and specifies the `editing_image` texture as the image data source, using
- * `scaledDimensions` as the `sourceDimensions`.
- *
- * \since BMPM 0.1.0
- */
 void RenderCentralPanel() {
     DisplayImgDimensions scaledDimentions;
 
@@ -217,8 +173,6 @@ void RenderEditButtons() {
     // Renders the Bottom panel that holds the buttons to edit the image
     CLAY({ .id = CLAY_ID("EditsButtons"), .backgroundColor = BackgroundColor, .layout = { .sizing = { .height = CLAY_SIZING_FIXED(BOX_H), .width = CLAY_SIZING_GROW(0) }, .padding = CLAY_PADDING_ALL(BOX_PADD), .childGap = BOX_PADD, .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER } }, .cornerRadius = CLAY_CORNER_RADIUS(8) })
     {
-        RenderButton(CLAY_STRING("Cut"), ACTION_CUT);
-
         Clay_ElementDeclaration rotate_btn = { .id = CLAY_ID("rotate_btn"), .layout = { .padding = {0, 0, 0, 0}, .sizing = {.height = BTN_H, .width = BTN_W}, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER}, .childGap = 20 } };
         if (Clay_PointerOver(CLAY_ID("rotate_btn"))) {
             rotate_btn.backgroundColor = ButtonHoverColor;
@@ -237,47 +191,20 @@ void RenderEditButtons() {
         }
         CLAY(rotate_btn) {
             // Button content goes here
-
             // Button text and effects
-            Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE_MENU); CLAY_TEXT(CLAY_STRING("Rotate"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite}));
+            Clay_OnHover(HandleButtonClick, ACTION_TOGGLE_EDIT_MENU); CLAY_TEXT(CLAY_STRING("Rotate"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite}));
             bool rotMenuVisible = Clay_PointerOver(Clay_GetElementId(CLAY_STRING("rotate_btn"))) || Clay_PointerOver(Clay_GetElementId(CLAY_STRING("rot_menu")));
-            if (rotMenuVisible  /*|| rotMenuClicked*/)
+            if (rotMenuVisible)
             {
-                CLAY({
-                    .id = CLAY_ID("rot_menu"),
-                    .layout = {
-                        .layoutDirection = CLAY_TOP_TO_BOTTOM
-                    },
-                    .floating = { .attachTo = CLAY_ATTACH_TO_PARENT,
-                        .attachPoints = {
-                            .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM,
-                            .parent = CLAY_ATTACH_POINT_RIGHT_TOP
-                        }
-                    }
-                }){
-                    CLAY({
-                        .id = CLAY_ID("rot_r"),
-                        .layout = {
-                            .sizing = {.width = BTN_W, .height = BTN_H},
-                            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT},
-                            .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}
-                        },
-                        .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor,
-                        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
-                    }){
+                CLAY({ .id = CLAY_ID("rot_menu"), .layout = { .layoutDirection = CLAY_TOP_TO_BOTTOM }, .floating = { .attachTo = CLAY_ATTACH_TO_PARENT, .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_TOP } } })
+                {
+                    CLAY({ .id = CLAY_ID("rot_r"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} })
+                    {
                         Clay_OnHover(HandleButtonClick, ACTION_ROTATE_RIGHT); CLAY_TEXT(CLAY_STRING("Right"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
 
-                    CLAY({
-                        .id = CLAY_ID("rot_l"),
-                        .layout = {
-                            .sizing = {.width = BTN_W, .height = BTN_H},
-                            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT},
-                            .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}
-                        },
-                        .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor,
-                        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
-                    }){
+                    CLAY({ .id = CLAY_ID("rot_l"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} })
+                    {
                         Clay_OnHover(HandleButtonClick, ACTION_ROTATE_LEFT); CLAY_TEXT(CLAY_STRING("Left"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
                 }
@@ -301,71 +228,28 @@ void RenderEditButtons() {
         }
         CLAY(RGB_btn) {
             // Button content goes here
-
             // Button text and effects
-            Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE_MENU); CLAY_TEXT(CLAY_STRING("RGB"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite}));
+            Clay_OnHover(HandleButtonClick, ACTION_TOGGLE_EDIT_MENU); CLAY_TEXT(CLAY_STRING("RGB"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite}));
             bool rgbMenuVisible = Clay_PointerOver(Clay_GetElementId(CLAY_STRING("RGB_btn"))) || Clay_PointerOver(Clay_GetElementId(CLAY_STRING("rgb_menu")));
-            if (rgbMenuVisible  /*|| rotMenuClicked*/)
+            if (rgbMenuVisible)
             {
-                CLAY({
-                    .id = CLAY_ID("rgb_menu"),
-                    .layout = {
-                        .layoutDirection = CLAY_TOP_TO_BOTTOM
-                    },
-                    .floating = { .attachTo = CLAY_ATTACH_TO_PARENT,
-                        .attachPoints = {
-                            .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM,
-                            .parent = CLAY_ATTACH_POINT_RIGHT_TOP
-                        }
-                    }
-                }){
-                    CLAY({
-                        .id = CLAY_ID("rgb-r"),
-                        .layout = {
-                            .sizing = {.width = BTN_W, .height = BTN_H},
-                            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT},
-                            .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}
-                        },
-                        .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor,
-                        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
-                    }){
+                CLAY({ .id = CLAY_ID("rgb_menu"), .layout = { .layoutDirection = CLAY_TOP_TO_BOTTOM }, .floating = { .attachTo = CLAY_ATTACH_TO_PARENT, .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_TOP } } })
+                {
+                    CLAY({ .id = CLAY_ID("rgb-r"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} })
+                    {
                         Clay_OnHover(HandleButtonClick, ACTION_CHANGE_R); CLAY_TEXT(CLAY_STRING("Red"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
 
-                    CLAY({
-                        .id = CLAY_ID("rgb-g"),
-                        .layout = {
-                            .sizing = {.width = BTN_W, .height = BTN_H},
-                            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT},
-                            .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}
-                        },
-                        .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor,
-                        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
-                    }){
+                    CLAY({ .id = CLAY_ID("rgb-g"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} }) 
+                    {
                         Clay_OnHover(HandleButtonClick, ACTION_CHANGE_G); CLAY_TEXT(CLAY_STRING("Green"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
-                    CLAY({
-                        .id = CLAY_ID("rgb-b"),
-                        .layout = {
-                            .sizing = {.width = BTN_W, .height = BTN_H},
-                            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT},
-                            .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}
-                        },
-                        .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor,
-                        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
-                    }){
+                    CLAY({ .id = CLAY_ID("rgb-b"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} }) 
+                    {
                         Clay_OnHover(HandleButtonClick, ACTION_CHANGE_B); CLAY_TEXT(CLAY_STRING("Blue"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
-                    CLAY({
-                        .id = CLAY_ID("rgb-grey"),
-                        .layout = {
-                            .sizing = {.width = BTN_W, .height = BTN_H},
-                            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT},
-                            .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}
-                        },
-                        .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor,
-                        .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}
-                    }){
+                    CLAY({ .id = CLAY_ID("rgb-grey"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} }) 
+                    {
                         Clay_OnHover(HandleButtonClick, ACTION_GRAYSCALE); CLAY_TEXT(CLAY_STRING("Grey"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
 
@@ -396,32 +280,51 @@ Clay_RenderCommandArray CreateLayout() {
             {
                 // Button text and efects
                 Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE_MENU); CLAY_TEXT(CLAY_STRING("File"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite}));
-                bool fileMenuVisible = Clay_PointerOver(Clay_GetElementId(CLAY_STRING("file_btn"))) || Clay_PointerOver(Clay_GetElementId(CLAY_STRING("file_menu")));
-                if (fileMenuVisible  /*|| fileMenuClicked*/)
+                bool fileMenuVisible = Clay_PointerOver(Clay_GetElementId(CLAY_STRING("file_btn"))) || Clay_PointerOver(Clay_GetElementId(CLAY_STRING("file_menu"))) || Clay_PointerOver(Clay_GetElementId(CLAY_STRING("file_input_text_area")));
+                if (fileMenuVisible  || isFileMenuFocused)
                 {
                     /* File Dropdown Menu */
-                    CLAY({ .id = CLAY_ID("file_menu"), .floating = { .attachTo = CLAY_ATTACH_TO_PARENT, .attachPoints = { .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },} })
+                    CLAY({ .id = CLAY_ID("file_menu"), .floating = { .attachTo = CLAY_ATTACH_TO_PARENT, .attachPoints = { .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM }} })
                     {
                         CLAY({ .layout = { .layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.height = CLAY_SIZING_GROW(0), .width = CLAY_SIZING_FIXED(BTN_W)} } })
                         {
                             // Render dropdown items here
                             CLAY({ .id = CLAY_ID("open_file_btn"), .layout = {.sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}}, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}})
                             {
+                                // Button text and efects
                                 Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE); CLAY_TEXT(CLAY_STRING("Open"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
+                                if(isFilePathInputFocused)
+                                {
+                                    /* File input text area */
+                                    CLAY({ .id = CLAY_ID("input_menu"), .floating = { .attachTo = CLAY_ATTACH_TO_PARENT, .attachPoints = { .parent = CLAY_ATTACH_POINT_RIGHT_TOP}} })
+                                    {
+                                        CLAY({ .layout = { .layoutDirection = CLAY_LEFT_TO_RIGHT, .sizing = {.height = CLAY_SIZING_GROW(0), .width = CLAY_SIZING_FIXED(BTN_W)} } })
+                                        {
+                                            /*This will display the actual buffer of the input text area*/
+                                            CLAY({ .id = CLAY_ID("file_input_text_area"), .layout = {.sizing = {.width = BTN_W * 4, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}}, .backgroundColor =  FullBackgroundColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}})
+                                            {
+                                                Clay_OnHover(HandleButtonClick, ACTION_INPUT_FILEPATH_FOCUS);
+                                                Clay_String filePathSlice = { .chars = filePathBuffer, .length = strlen(filePathBuffer) };
+                                                CLAY_TEXT( filePathSlice, CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }) );
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             CLAY({ .id = CLAY_ID("close_file_btn"), .layout = {.sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0}}, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite}})
                             {
-                                Clay_OnHover(HandleButtonClick, ACTION_OPEN_FILE); CLAY_TEXT(CLAY_STRING("Close"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
+                                Clay_OnHover(HandleButtonClick, ACTION_NONE); CLAY_TEXT(CLAY_STRING("Close"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                             }
-
                         }
                     }
+
                 }
             }
 
         /* Edit button */CLAY({.id = CLAY_ID("edit_btn"), .layout = { .padding = {BOX_PADD, BOX_PADD, 0, 0}, .sizing = {.height = 25}, .childAlignment = {.y = CLAY_ALIGN_Y_CENTER} }, .backgroundColor = Clay_Hovered() ? ButtonHoverColor : ButtonColor, .cornerRadius = CLAY_CORNER_RADIUS(6), .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} })
         { Clay_OnHover(HandleButtonClick, ACTION_OPEN_EDIT_MENU); CLAY_TEXT(CLAY_STRING("Edit"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite}));}
         /* Drop Down Edit Menu */
+
         }
 
         // Image Display Panel
@@ -434,7 +337,26 @@ Clay_RenderCommandArray CreateLayout() {
     return Clay_EndLayout();
 }
 
-DisplayImgDimensions _calculateDisplayImgDimentions(){
+
+/**
+ * @brief Calculates scaled image dimensions for display within the central panel.
+ *
+ * This function determines the scale, if needed, to display the image in the available space.
+ *
+ * The calculation takes into account:
+ *  - The current dimensions of the main window.
+ *  - Predefined padding and header/button box heights that define the available
+ *    space within the central panel.
+ *  - Image rotation: If the image is rotated vertically, the available
+ *    width and height are swapped during scaling to reflect the new image dimentions.
+ *
+ * \returns DisplayImgDimensions A structure containing the calculated scaled width and height.
+ *
+ * \since BMPM 0.1.0
+ *
+ * \sa RenderCentralPanel
+ */
+static DisplayImgDimensions _calculateDisplayImgDimentions(){
     DisplayImgDimensions auxDim;
     int mainWwidth = 0, mainWheight = 0, img_width = 0, img_height = 0,
     _aux, available_width, available_height;

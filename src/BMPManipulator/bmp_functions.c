@@ -109,6 +109,67 @@ int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** p
     return 0;
 }
 
+int saveImageBMPM(const char* dirPath, BMPMetadata *metadata, unsigned char* pixels) {
+    FILE *bmpFile = NULL;
+
+    if (dirPath == NULL || metadata == NULL || pixels == NULL) {
+        fprintf(stderr, "Error: Invalid input parameters to saveImageBMPM.\n");
+        return 0; // Indicate failure due to invalid input
+    }
+
+    bmpFile = fopen(dirPath, "wb");
+    if (bmpFile == NULL) {
+        perror("Error opening file for writing");
+        return 0; // Indicate file open error
+    }
+
+    if (metadata->bitsPerPixel != 24) { // Still supporting only 24-bit for now
+        fprintf(stderr, "Error: saveImageBMPM currently only supports 24-bit BMP.\n");
+        fclose(bmpFile);
+        return 0;
+    }
+
+    // --- Calculate imageSize and fileSize (based on metadata->width, height, bitsPerPixel) ---
+    int bytesPerPixel = metadata->bitsPerPixel / 8;
+    int rowPadding = (4 - (metadata->width * bytesPerPixel) % 4) % 4;
+    metadata->imageSize = (metadata->width * bytesPerPixel + rowPadding) * metadata->height;
+    metadata->fileSize = metadata->dataOffset + metadata->imageSize;
+
+
+    // --- Write BMP File Header (14 bytes) from the metadata struct ---
+    fwrite(metadata->signature, sizeof(char), 2, bmpFile);      // Signature "BM"
+    fwrite(&metadata->fileSize, sizeof(uint32_t), 1, bmpFile);    // FileSize
+    fwrite(&metadata->reserved, sizeof(uint32_t), 1, bmpFile);    // Reserved
+    fwrite(&metadata->dataOffset, sizeof(uint32_t), 1, bmpFile);  // DataOffset
+
+    // --- Write DIB Header (40 bytes) from the metadata struct ---
+    fwrite(&metadata->headerSize, sizeof(uint32_t), 1, bmpFile);   // HeaderSize
+    fwrite(&metadata->width, sizeof(int32_t), 1, bmpFile);      // Width
+    fwrite(&metadata->height, sizeof(int32_t), 1, bmpFile);     // Height
+    fwrite(&metadata->planes, sizeof(uint16_t), 1, bmpFile);     // Planes
+    fwrite(&metadata->bitsPerPixel, sizeof(uint16_t), 1, bmpFile); // BitsPerPixel
+    fwrite(&metadata->compression, sizeof(uint32_t), 1, bmpFile);  // Compression
+    fwrite(&metadata->imageSize, sizeof(uint32_t), 1, bmpFile);   // ImageSize
+    fwrite(&metadata->xPixelsPerM, sizeof(int32_t), 1, bmpFile);   // xPixelsPerM
+    fwrite(&metadata->yPixelsPerM, sizeof(int32_t), 1, bmpFile);   // yPixelsPerM
+    fwrite(&metadata->colorsUsed, sizeof(uint32_t), 1, bmpFile);  // colorsUsed
+    fwrite(&metadata->importantColors, sizeof(uint32_t), 1, bmpFile);// importantColors
+
+    // --- Pixel Data (same as before) ---
+    unsigned char padding[3] = {0, 0, 0};
+    bytesPerPixel = metadata->bitsPerPixel / 8;
+    rowPadding = (4 - (metadata->width * bytesPerPixel) % 4) % 4;
+
+    for (int y = metadata->height; y > 0 ; --y) {
+        unsigned char *rowStart = pixels + (metadata->height - 1 - y) * metadata->width * bytesPerPixel;
+        fwrite(rowStart, bytesPerPixel * metadata->width, 1, bmpFile);
+        fwrite(padding, rowPadding, 1, bmpFile);
+    }
+
+    fclose(bmpFile);
+    printf("BMP image saved successfully to: %s\n", dirPath);
+    return 1;
+}
 
 int grayScaleBMPM(BMPMetadata * metadata, unsigned char* pixels){
     for(int i = 0; i < metadata->height * metadata ->width; i++){

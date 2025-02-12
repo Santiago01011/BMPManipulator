@@ -208,11 +208,7 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 break;
             }
             case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
-                // Clay_ImageRenderData *config = &renderCommand->renderData.image;
-                // SDL_Texture *texture = config->imageData;
-
                 SDL_Texture *texture = renderCommand->renderData.image.imageData;
-
                 SDL_Rect destination = (SDL_Rect){
                     .x = boundingBox.x,
                     .y = boundingBox.y,
@@ -221,7 +217,6 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 };
 
                 /*This is for my specific use case*/
-                printf("%d\n", metadata.angle);
                 SDL_RenderCopyEx(renderer, texture, NULL, &destination, metadata.angle, 0, SDL_FLIP_VERTICAL);
                 /*This is more general*/
                 // SDL_RenderCopy(renderer, texture, NULL, &destination);

@@ -61,12 +61,17 @@
 		</Unit>
 		<Unit filename="BMPManipulator/funciones_estudiante.h" />
 		<Unit filename="UI/clay.h" />
+		<Unit filename="UI/clay_elements.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="UI/clay_elements.h" />
 		<Unit filename="UI/clay_renderer_SDL2.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="UI/ui.c">
+		<Unit filename="Utils/textures_utils.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="Utils/textures_utils.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
