@@ -19,14 +19,14 @@
 
 const int FontIdBody16 = 0;
 
-unsigned char* originalImage = NULL;
 unsigned char* backUpImage = NULL;
 SDL_Texture *editing_image = NULL;
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
-BMPMetadata metadata;
 short finalAngleAfterRotation;
 AnimationState currentAnimationState = ANIMATION_STATE_NONE;
+
+ImageBMP originalImageBMP = {0};
 
 char filePathBuffer[256] = "Insert here the path to the image";
 bool isFilePathInputFocused = false;
@@ -34,6 +34,23 @@ bool isFilePathInputFocused = false;
 
 void HandleClayErrors(Clay_ErrorData errorData){
     printf("%s", errorData.errorText.chars);
+}
+
+void normalizePath(){
+    if (filePathBuffer == NULL || filePathBuffer[0] == '\0') return;
+    char* aux = filePathBuffer;
+    if (strchr(filePathBuffer, '\"') != NULL){
+        size_t len = strlen(filePathBuffer);
+        if(filePathBuffer[0] == '\"' && len > 1)
+            memmove(filePathBuffer, filePathBuffer + 1, len);
+        if(strrchr(filePathBuffer, '\"') != NULL)
+            filePathBuffer[strlen(filePathBuffer) - 1] = '\0';
+    }
+    for(int i = 0; filePathBuffer[i] != '\0'; i++){
+        if(filePathBuffer[i] == '\\')
+            filePathBuffer[i] = '/';
+    }
+    printf("%s\n", filePathBuffer);
 }
 
 void safeAppendToFilePathBuffer(const char *textToAppend){
@@ -90,12 +107,15 @@ int main(int argc, char *argv[]){
     uint64_t totalMemorySize = Clay_MinMemorySize();
     void *memoryBuffer = malloc(totalMemorySize);
 
-    // Load an default image
-    if (!chargeTexture("resources/miku.bmp")) {
-        goto quit;
+    //Load an default image
+    if (!chargeTexture("resources/noImage.bmp")) {
+        puts("Failed to load default image.");
+        //free(memoryBuffer);
+        //goto quit;
     }
-    saveImageBMPM("resources/testSave.bmp", &metadata, originalImage);
-
+    else {
+        puts("Default image loaded successfully.");
+    }
     // Initialize Clay with current window dimensions
     int windowWidth = 0, windowHeight = 0;
     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
@@ -136,7 +156,11 @@ int main(int argc, char *argv[]){
                     } else if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_RETURN2 || event.key.keysym.sym == SDLK_KP_ENTER) {
                         isFilePathInputFocused = false;
                         SDL_StopTextInput();
-                        chargeTexture(filePathBuffer);
+                        normalizePath();
+                        if(!chargeTexture(filePathBuffer))
+                            puts("Failed to load image from the specified path.");
+                        else
+                            puts("Image loaded successfully.");
                         filePathBuffer[0] = '\0';
                     } else if (event.key.keysym.sym == SDLK_ESCAPE) {
                         isFilePathInputFocused = false;
@@ -183,31 +207,31 @@ int main(int argc, char *argv[]){
         // Build layout
         Clay_RenderCommandArray renderCommands = CreateLayout();
 
-        /*this is for animation control*/
-        switch(currentAnimationState) {
-            case ANIMATION_STATE_ROTATING_RIGHT:
-                if(finalAngleAfterRotation > 0) {
-                    metadata.angle += 5;
-                    finalAngleAfterRotation -=5;
-                    if(metadata.angle >= 360)
-                        metadata.angle = 0;
-                } else {
-                    currentAnimationState = ANIMATION_STATE_NONE;
-                }
-                break;
-            case ANIMATION_STATE_ROTATING_LEFT:
-                if(finalAngleAfterRotation < 0){
-                    metadata.angle -= 5;
-                    finalAngleAfterRotation += 5;
-                    if(metadata.angle <= -360)
-                        metadata.angle = 0;
-                } else {
-                    currentAnimationState = ANIMATION_STATE_NONE;
-                }
-                break;
-            default:
-                break;
-        }
+        // /*this is for animation control*/
+        // switch(currentAnimationState) {
+        //     case ANIMATION_STATE_ROTATING_RIGHT:
+        //         if(finalAngleAfterRotation > 0) {
+        //             metadata.angle += 5;
+        //             finalAngleAfterRotation -=5;
+        //             if(metadata.angle >= 360)
+        //                 metadata.angle = 0;
+        //         } else {
+        //             currentAnimationState = ANIMATION_STATE_NONE;
+        //         }
+        //         break;
+        //     case ANIMATION_STATE_ROTATING_LEFT:
+        //         if(finalAngleAfterRotation < 0){
+        //             metadata.angle -= 5;
+        //             finalAngleAfterRotation += 5;
+        //             if(metadata.angle <= -360)
+        //                 metadata.angle = 0;
+        //         } else {
+        //             currentAnimationState = ANIMATION_STATE_NONE;
+        //         }
+        //         break;
+        //     default:
+        //         break;
+        // }
 
         SDL_SetRenderDrawColor(renderer, 8, 8, 8, 8);
         SDL_RenderClear(renderer);
@@ -218,8 +242,8 @@ int main(int argc, char *argv[]){
 quit:
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    if (originalImage)
-        free(originalImage);
+    if (originalImageBMP.pixels)
+        free(originalImageBMP.pixels);
     if (memoryBuffer)
         free(memoryBuffer);
     IMG_Quit();

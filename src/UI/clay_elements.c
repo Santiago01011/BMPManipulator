@@ -16,12 +16,12 @@ const Clay_Color ButtonHoverColor = (Clay_Color){82, 121, 111, 100}; // rgb(82, 
 
 bool isFileMenuFocused;
 
-extern unsigned char* originalImage;
+
 extern unsigned char* backUpImage;
+extern ImageBMP originalImageBMP;
 extern SDL_Texture *editing_image;
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
-extern BMPMetadata metadata;
 extern short finalAngleAfterRotation;
 extern AnimationState currentAnimationState;
 extern const int FontIdBody16;
@@ -59,13 +59,13 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 break;
 
             case ACTION_ROTATE_RIGHT:
-                backUpImage = (unsigned char*)malloc(metadata.height * calculatePitch(&metadata));
+                backUpImage = (unsigned char*)malloc(originalImageBMP.metadata.height * calculatePitch(&originalImageBMP.metadata));
                 if(!backUpImage){
                     puts("Error allocating memory to change red value");
                     return;
                 }
-                memcpy(backUpImage, originalImage, metadata.height* calculatePitch(&metadata));
-                rotateBMPM(&metadata, &backUpImage, 'r');
+                memcpy(backUpImage, (void*)originalImageBMP.pixels, originalImageBMP.metadata.height* calculatePitch(&originalImageBMP.metadata));
+                //rotateBMPM(&originalImageBMP.metadata, &backUpImage, 'r');
                 currentAnimationState = ANIMATION_STATE_ROTATING_RIGHT;
 
                 finalAngleAfterRotation += 90;
@@ -74,13 +74,13 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 break;
 
             case ACTION_ROTATE_LEFT:
-                backUpImage = (unsigned char*)malloc(metadata.height * calculatePitch(&metadata));
+                backUpImage = (unsigned char*)malloc(originalImageBMP.metadata.height * calculatePitch(&originalImageBMP.metadata));
                 if(!backUpImage){
                     puts("Error allocating memory to change red value");
                     return;
                 }
-                memcpy(backUpImage, originalImage, metadata.height* calculatePitch(&metadata));
-                rotateBMPM(&metadata, &backUpImage, 'l');
+                memcpy(backUpImage, (void*)originalImageBMP.pixels, originalImageBMP.metadata.height* calculatePitch(&originalImageBMP.metadata));
+                //rotateBMPM(&originalImageBMP.metadata, &backUpImage, 'l');
                 currentAnimationState = ANIMATION_STATE_ROTATING_LEFT;
 
                 finalAngleAfterRotation -= 90;
@@ -89,38 +89,38 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 break;
 
             case ACTION_CHANGE_R:
-                backUpImage = (unsigned char*)malloc(metadata.height * calculatePitch(&metadata));
+                backUpImage = (unsigned char*)malloc(originalImageBMP.metadata.height * calculatePitch(&originalImageBMP.metadata));
                 if(!backUpImage){
                     puts("Error allocating memory to change red value");
                     return;
                 }
-                memcpy(backUpImage, originalImage, metadata.height* calculatePitch(&metadata));
-                changeRGBvalues(&metadata, backUpImage, 1.25, 0.75, 0.75);
-                SDL_UpdateTexture(editing_image, NULL, backUpImage, calculatePitch(&metadata));
+                memcpy(backUpImage, (void*)originalImageBMP.pixels, originalImageBMP.metadata.height* calculatePitch(&originalImageBMP.metadata));
+                //changeRGBvalues(&originalImageBMP.metadata, backUpImage, 1.25, 0.75, 0.75);
+                SDL_UpdateTexture(editing_image, NULL, backUpImage, calculatePitch(&originalImageBMP.metadata));
                 free(backUpImage);
                 break;
 
              case ACTION_CHANGE_G:
-                backUpImage = (unsigned char*)malloc(metadata.height * calculatePitch(&metadata));
+                backUpImage = (unsigned char*)malloc(originalImageBMP.metadata.height * calculatePitch(&originalImageBMP.metadata));
                 if(!backUpImage){
                     puts("Error allocating memory to change red value");
                     return;
                 }
-                memcpy(backUpImage, originalImage, metadata.height* calculatePitch(&metadata));
-                changeRGBvalues(&metadata, backUpImage, 0.75, 1.25, 0.75);
-                SDL_UpdateTexture(editing_image, NULL, backUpImage, calculatePitch(&metadata));
+                memcpy(backUpImage, (void*)originalImageBMP.pixels, originalImageBMP.metadata.height* calculatePitch(&originalImageBMP.metadata));
+                //changeRGBvalues(&originalImageBMP.metadata, backUpImage, 0.75, 1.25, 0.75);
+                SDL_UpdateTexture(editing_image, NULL, backUpImage, calculatePitch(&originalImageBMP.metadata));
                 free(backUpImage);
                 break;
 
              case ACTION_CHANGE_B:
-                backUpImage = (unsigned char*)malloc(metadata.height * calculatePitch(&metadata));
+                backUpImage = (unsigned char*)malloc(originalImageBMP.metadata.height * calculatePitch(&originalImageBMP.metadata));
                 if(!backUpImage){
                     puts("Error allocating memory to change green value");
                     return;
                 }
-                memcpy(backUpImage, originalImage, metadata.height* calculatePitch(&metadata));
-                changeRGBvalues(&metadata, backUpImage, 0.75, 0.75, 1.25);
-                SDL_UpdateTexture(editing_image, NULL, backUpImage, calculatePitch(&metadata));
+                memcpy(backUpImage, (void*)originalImageBMP.pixels, originalImageBMP.metadata.height* calculatePitch(&originalImageBMP.metadata));
+                //changeRGBvalues(&originalImageBMP.metadata, backUpImage, 0.75, 0.75, 1.25);
+                SDL_UpdateTexture(editing_image, NULL, backUpImage, calculatePitch(&originalImageBMP.metadata));
                 free(backUpImage);
                 break;
 
@@ -130,14 +130,14 @@ void HandleButtonClick(Clay_ElementId elementId, Clay_PointerData pointerData, i
                 break;
 
             case ACTION_GRAYSCALE:
-                backUpImage = (unsigned char*)malloc(metadata.height * calculatePitch(&metadata));
+                backUpImage = (unsigned char*)malloc(originalImageBMP.metadata.height * calculatePitch(&originalImageBMP.metadata));
                 if(!backUpImage){
                     puts("Error allocating memory to gray-scale");
                     return;
                 }
-                memcpy(backUpImage, originalImage, metadata.height* calculatePitch(&metadata));
-                grayScaleBMPM(&metadata, backUpImage);
-                SDL_UpdateTexture(editing_image, NULL, backUpImage, calculatePitch(&metadata));
+                memcpy(backUpImage, (void*)originalImageBMP.pixels, originalImageBMP.metadata.height* calculatePitch(&originalImageBMP.metadata));
+                //grayScaleBMPM(&originalImageBMP.metadata, backUpImage);
+                SDL_UpdateTexture(editing_image, NULL, backUpImage, calculatePitch(&originalImageBMP.metadata));
                 free(backUpImage);
                 break;
 
@@ -165,7 +165,7 @@ void RenderCentralPanel() {
         /*Call to a function for handle the size of the image to display it inside of the container*/
         scaledDimentions = _calculateDisplayImgDimentions();
         /*Image*/
-        CLAY({ .layout = {.childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }, .sizing = { .width = CLAY_SIZING_FIXED(scaledDimentions.width), .height = CLAY_SIZING_FIXED(scaledDimentions.height) } }, .image = { .sourceDimensions = {scaledDimentions.width, scaledDimentions.height}, .imageData = editing_image } }) { if(!originalImage){ CLAY_TEXT(CLAY_STRING("NO IMAGE TO DISPLAY"),CLAY_TEXT_CONFIG({ .fontId = 0, .fontSize =  42, .textColor = {255,255,255,255} })); };}
+        CLAY({ .layout = {.childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }, .sizing = { .width = CLAY_SIZING_FIXED(scaledDimentions.width), .height = CLAY_SIZING_FIXED(scaledDimentions.height) } }, .image = { .imageData = editing_image } }) { if(!(void*)originalImageBMP.pixels){ CLAY_TEXT(CLAY_STRING("NO IMAGE TO DISPLAY"),CLAY_TEXT_CONFIG({ .fontId = 0, .fontSize =  42, .textColor = {255,255,255,255} })); };}
     }
 }
 
@@ -211,7 +211,7 @@ void RenderEditButtons() {
             }
         }
         Clay_ElementDeclaration RGB_btn = { .id = CLAY_ID("RGB_btn"), .layout = { .padding = {0, 0, 0, 0}, .sizing = {.height = BTN_H, .width = BTN_W}, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER}, .childGap = 20 } };
-        if (Clay_PointerOver(CLAY_ID("RGB_btn"))) {
+        if (Clay_PointerOver(CLAY_ID("RGB_btn")) || Clay_PointerOver(CLAY_ID("rgb_menu"))) {
             RGB_btn.backgroundColor = ButtonHoverColor;
             RGB_btn.cornerRadius = (Clay_CornerRadius){ 0, 0, 0, 0 };
             RGB_btn.border = (Clay_BorderElementConfig){
@@ -240,15 +240,15 @@ void RenderEditButtons() {
                         Clay_OnHover(HandleButtonClick, ACTION_CHANGE_R); CLAY_TEXT(CLAY_STRING("Red"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
 
-                    CLAY({ .id = CLAY_ID("rgb-g"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} }) 
+                    CLAY({ .id = CLAY_ID("rgb-g"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} })
                     {
                         Clay_OnHover(HandleButtonClick, ACTION_CHANGE_G); CLAY_TEXT(CLAY_STRING("Green"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
-                    CLAY({ .id = CLAY_ID("rgb-b"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} }) 
+                    CLAY({ .id = CLAY_ID("rgb-b"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} })
                     {
                         Clay_OnHover(HandleButtonClick, ACTION_CHANGE_B); CLAY_TEXT(CLAY_STRING("Blue"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
-                    CLAY({ .id = CLAY_ID("rgb-grey"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} }) 
+                    CLAY({ .id = CLAY_ID("rgb-grey"), .layout = { .sizing = {.width = BTN_W, .height = BTN_H}, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER, .x =  CLAY_ALIGN_X_LEFT}, .padding = {BOX_PADD / 2, BOX_PADD, 0, 0} }, .backgroundColor =  Clay_Hovered() ? ButtonHoverColor : ButtonColor, .border = {.width = {1,1,1,1}, .color = !Clay_Hovered() ? FullBackgroundColor : ColorWhite} })
                     {
                         Clay_OnHover(HandleButtonClick, ACTION_GRAYSCALE); CLAY_TEXT(CLAY_STRING("Grey"), CLAY_TEXT_CONFIG({ .fontId = FontIdBody16, .fontSize = 12, .textColor = ColorWhite }));
                     }
@@ -363,17 +363,17 @@ static DisplayImgDimensions _calculateDisplayImgDimentions(){
     SDL_GetWindowSize(window, &mainWwidth, &mainWheight);
     float scale_width = 0, scale_height = 0, scale = 0;
 
-    img_width = metadata.width;
-    img_height = metadata.height;
+    img_width = originalImageBMP.metadata.width;
+    img_height = originalImageBMP.metadata.height;
 
     // Calculations for available space
     available_width = mainWwidth - BOX_PADD;
     available_height = mainWheight - (BOX_PADD * 2) - (BOX_H * 2);
-    if (metadata.angle % 180 != 0){ //swap the available space if image is rotated vertically, to adjust layout
-        _aux = available_height;
-        available_height = available_width;
-        available_width = _aux;
-    }
+    // if (originalImageBMP.metadata.angle % 180 != 0){ //swap the available space if image is rotated vertically, to adjust layout
+    //     _aux = available_height;
+    //     available_height = available_width;
+    //     available_width = _aux;
+    // }
     scale_width = (float)available_width / (float)img_width;
     scale_height = (float)available_height / (float)img_height;
     scale = (scale_width < scale_height) ? scale_width : scale_height;

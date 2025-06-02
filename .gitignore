@@ -1,3 +1,7 @@
+
+resources/
+bin/
+.vscode/
 # Prerequisites
 *.d
 

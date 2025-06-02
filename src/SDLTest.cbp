@@ -48,7 +48,7 @@
 			<Add directory="C:/Users/ZAPATASANTIAGO/priv/C/SDL2/SDL2-2.28.5/x86_64-w64-mingw32/lib" />
 		</Linker>
 		<ExtraCommands>
-			<Add after="XCOPY $(#sdl2)\bin\*.dll $(TARGET_OUTPUT_DIR) /D /Y" />
+			<Add after="XCOPY C:\Users\ZAPATASANTIAGO\priv\C\SDL2\SDL2-2.28.5\x86_64-w64-mingw32\bin\*.dll $(TARGET_OUTPUT_DIR) /D /Y" />
 		</ExtraCommands>
 		<Unit filename="BMPManipulator/bmp_functions.c">
 			<Option compilerVar="CC" />

@@ -8,48 +8,54 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 // @todo (ZAPATASANTIAGO#7#02/06/25): Add support to more BMP types
 #define HEADER_SIZE 54
 
-typedef struct {
-    // File Header (14 bytes)
-    char signature[2];      // 'BM'
-    uint32_t fileSize;      // Total file size
-    uint32_t reserved;      // Unused
-    uint32_t dataOffset;    // Pixel data offset
-
-    // Info Header (40 bytes)
-    uint32_t headerSize;    // Info header size (40)
-    int32_t width;          // Image width in pixels
-    int32_t height;         // Image height in pixels
-    uint16_t planes;        // Must be 1
-    uint16_t bitsPerPixel;  // Color depth (1, 4, 8, 24, 32)
-    uint32_t compression;   // Compression method
-    uint32_t imageSize;     // Raw bitmap data size (including padding)
-    int32_t xPixelsPerM;    // Horizontal resolution
-    int32_t yPixelsPerM;    // Vertical resolution
-    uint32_t colorsUsed;    // Number of colors in palette
-    uint32_t importantColors;
-    short angle;            // To display rotated images, not used for file values
-} BMPMetadata;
+typedef struct __attribute__((packed)) {
+    char signature[2];
+    uint32_t fileSize;
+    uint32_t reserved;
+    uint32_t dataOffset;
+    uint32_t headerSize;
+    uint32_t width;
+    uint32_t height;
+    uint16_t planes;
+    uint16_t bitDepth;
+    uint32_t compression;
+    uint32_t imageSize;
+    uint32_t xResolution;
+    uint32_t yResolution;
+    uint32_t colorTableSize;
+    uint32_t colorCount;
+}BMPHeader;
 
 typedef struct {
-    BMPMetadata base;  // Keep standard fields (first 54 bytes)
+    BMPHeader base;  // Keep standard fields (first 54 bytes)
 
     // Extra fields (present if headerSize >= 108)
     uint32_t redMask;
     uint32_t greenMask;
     uint32_t blueMask;
     uint32_t alphaMask;   // Only for 32-bit images with transparency
-} BMPMetadataExtended;
+} BMPHeaderExtended;
+
+typedef struct {
+    uint8_t b, g, r;
+}PixelRGB;
+
+typedef struct {
+    BMPHeader metadata;
+    PixelRGB *pixels;
+    short angle;
+}ImageBMP;
 
 
-int calculatePitch(BMPMetadata* metadata);
-int loadImageBMPM(const char* filePath, BMPMetadata* metadata, unsigned char** pixels);
-int saveImageBMPM(const char* dirPath, BMPMetadata *metadata, unsigned char* pixels);
-int grayScaleBMPM(BMPMetadata* metadata, unsigned char* pixels);
-int changeRGBvalues(BMPMetadata * metadata, unsigned char* pixels, float r, float g, float b);
-int rotateBMPM(BMPMetadata *metadata, unsigned char** pixels, const char dir);
+
+
+int calculatePitch(BMPHeader* metadata);
+ImageBMP loadImageBMPM(const char* filePath);
+void WriteImageBMPM(const char *fileName, PixelRGB *pixels, BMPHeader imgHeader);
 
 #endif // BMP_FUNCTIONS_H_INCLUDED
