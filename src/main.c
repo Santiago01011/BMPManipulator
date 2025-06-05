@@ -106,17 +106,15 @@ int main(int argc, char *argv[]){
     // Reserve memory for Clay
     uint64_t totalMemorySize = Clay_MinMemorySize();
     void *memoryBuffer = malloc(totalMemorySize);
+    if (!memoryBuffer) 
+        goto quit;
 
     //Load an default image
-     if (!chargeTexture("resources/noImage.bmp")) {
-         puts("Failed to load default image.");
-         //free(memoryBuffer);
-         //goto quit;
-     }
-     else {
-         puts("Default image loaded successfully.");
-     }
-    // Initialize Clay with current window dimensions
+    if (!chargeTexture("resources/noImage.bmp"))
+        puts("Failed to load default image.");
+    else 
+        puts("Default image loaded successfully.");
+    
     int windowWidth = 0, windowHeight = 0;
     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
     Clay_Arena clayMemory = Clay_CreateArenaWithCapacityAndMemory(totalMemorySize, memoryBuffer);
@@ -167,11 +165,10 @@ int main(int argc, char *argv[]){
                         SDL_StopTextInput();
                         filePathBuffer[0] = '\0';
                     }
-                    else if (event.key.keysym.sym == SDLK_v && (SDL_GetModState() & KMOD_CTRL)) { // Check for Ctrl+V
+                    else if (event.key.keysym.sym == SDLK_v && (SDL_GetModState() & KMOD_CTRL)) {
                         if (SDL_HasClipboardText()) {
                             char *clipboardText = SDL_GetClipboardText();
                             if (clipboardText != NULL) {
-                                // --- Append clipboard text to filePathBuffer ---
                                 size_t currentLength = strlen(filePathBuffer);
                                 size_t clipboardLength = strlen(clipboardText);
                                 size_t availableSpace = sizeof(filePathBuffer) - currentLength - 1;
