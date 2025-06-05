@@ -32,30 +32,18 @@ typedef struct __attribute__((packed)) {
 }BMPHeader;
 
 typedef struct {
-    BMPHeader base;  // Keep standard fields (first 54 bytes)
-
-    // Extra fields (present if headerSize >= 108)
-    uint32_t redMask;
-    uint32_t greenMask;
-    uint32_t blueMask;
-    uint32_t alphaMask;   // Only for 32-bit images with transparency
-} BMPHeaderExtended;
-
-typedef struct {
-    uint8_t b, g, r;
-}PixelRGB;
+    uint8_t b, g, r, a;
+} PixelBGRA;
 
 typedef struct {
     BMPHeader metadata;
-    PixelRGB *pixels;
+    PixelBGRA *pixels;
     short angle;
-}ImageBMP;
-
-
-
+} ImageBMP;
 
 int calculatePitch(BMPHeader* metadata);
-ImageBMP loadImageBMPM(const char* filePath);
-void WriteImageBMPM(const char *fileName, PixelRGB *pixels, BMPHeader imgHeader);
+ImageBMP *BMPM_loadImage(const char* filePath);
+void BMPM_saveImage(const char *fileName, ImageBMP *image);
+void BMPM_freeImage(ImageBMP *image);
 
 #endif // BMP_FUNCTIONS_H_INCLUDED

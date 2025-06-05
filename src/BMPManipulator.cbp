@@ -54,12 +54,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="BMPManipulator/bmp_functions.h" />
-		<Unit filename="BMPManipulator/constantes.h" />
-		<Unit filename="BMPManipulator/estructuras.h" />
-		<Unit filename="BMPManipulator/funciones_estudiante.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="BMPManipulator/funciones_estudiante.h" />
 		<Unit filename="UI/clay.h" />
 		<Unit filename="UI/clay_elements.c">
 			<Option compilerVar="CC" />

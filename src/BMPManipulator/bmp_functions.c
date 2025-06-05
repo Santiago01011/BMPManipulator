@@ -1,12 +1,14 @@
 #include "bmp_functions.h"
 
 
-int calculatePitch(BMPHeader* metadata) {
+int calculatePitch(BMPHeader *metadata) {
+    if (metadata->bitDepth == 32)
+        return metadata->width * 4;
     int bytesPerPixel = metadata->bitDepth / 8;
     return ((metadata->width * bytesPerPixel + 3) / 4) * 4;
 }
 
-void _testHeader(BMPHeader* metadata) {
+void _testHeader(BMPHeader *metadata) {
     printf("Signature: %c%c\n", metadata->signature[0], metadata->signature[1]);
     printf("File Size: %u bytes\n", metadata->fileSize);
     printf("Data Offset: %u bytes\n", metadata->dataOffset);
@@ -17,68 +19,84 @@ void _testHeader(BMPHeader* metadata) {
     printf("Compression: %u\n", metadata->compression);
 }
 
-ImageBMP loadImageBMPM(const char* filePath) {
+ImageBMP *BMPM_loadImage(const char *filePath) {
     FILE *imgFile = fopen(filePath, "rb");
-    ImageBMP loadingImage;
-    loadingImage.pixels = NULL;
+    ImageBMP *loadingImage = NULL;
     if (!imgFile) {
         printf("Error opening file: %s\n", filePath);
-        return;
+        return NULL;
     }
+    loadingImage = (ImageBMP *)malloc(sizeof(ImageBMP));
+    if (!loadingImage) {
+        printf("Memory allocation failed for ImageBMP structure.\n");
+        fclose(imgFile);
+        return NULL;
+    }
+    loadingImage->angle = 0;
 
-    fread(&loadingImage.metadata, sizeof(BMPHeader), 1, imgFile);
-    _testHeader(&loadingImage.metadata);
+    fread(&loadingImage->metadata, sizeof(BMPHeader), 1, imgFile);
+    _testHeader(&loadingImage->metadata);
 
-    if (loadingImage.metadata.signature[0] != 'B' || loadingImage.metadata.signature[1] != 'M') {
+    if (loadingImage->metadata.signature[0] != 'B' || loadingImage->metadata.signature[1] != 'M') {
         printf("Not a valid BMP file: %s\n", filePath);
         fclose(imgFile);
-        return;
+        free(loadingImage);
+        return NULL;
     }
 
-    if (loadingImage.metadata.bitDepth != 24 && loadingImage.metadata.bitDepth != 32) {
-        printf("Unsupported BMP bit depth: %u\n", loadingImage.metadata.bitDepth);
+    if (loadingImage->metadata.bitDepth != 24 && loadingImage->metadata.bitDepth != 32) {
+        printf("Unsupported BMP bit depth: %u\n", loadingImage->metadata.bitDepth);
         fclose(imgFile);
-        return;
+        free(loadingImage);
+        return NULL;
     }
 
-    if (loadingImage.metadata.compression != 0) {
-        printf("Unsupported BMP compression: %u\n", loadingImage.metadata.compression);
+    int pitch = calculatePitch(&loadingImage->metadata);
+    size_t pixelArraySize = pitch * loadingImage->metadata.height;
+
+    loadingImage->pixels = (PixelBGRA *)malloc(pixelArraySize);
+    if (!loadingImage->pixels) {
+        fprintf(stderr, "Error: could not allocate pixel buffer\n");
         fclose(imgFile);
-        return loadingImage;
+        free(loadingImage);
+        return NULL;
     }
 
-    loadingImage.pixels = (PixelRGB *)malloc(loadingImage.metadata.width * loadingImage.metadata.height * sizeof(PixelRGB));
-    if (!loadingImage.pixels) {
-        printf("Memory allocation failed for pixels.\n");
-        fclose(imgFile);
-        return;
-    }
-    int paddedRowSize = (int)(4 * ceil((float)(loadingImage.metadata.width * (loadingImage.metadata.bitDepth / 8)) / 4.0f));
-    fseek(imgFile, loadingImage.metadata.dataOffset, SEEK_SET);
-    for (int i = 0; i < loadingImage.metadata.height; i++) {
-        fread(&loadingImage.pixels[i * loadingImage.metadata.width], sizeof(PixelRGB), loadingImage.metadata.width, imgFile);
-        fseek(imgFile, paddedRowSize - (loadingImage.metadata.width * sizeof(PixelRGB)), SEEK_CUR);
-    }
+    fseek(imgFile, loadingImage->metadata.dataOffset, SEEK_SET);
+    fread(loadingImage->pixels, pixelArraySize, 1, imgFile);
+
     fclose(imgFile);
     return loadingImage;
 }
 
-void WriteImageBMPM(const char *fileName, PixelRGB *pixels, BMPHeader imgHeader)
+void BMPM_saveImage(const char *fileName, ImageBMP *image) 
 {
-    int i;
     FILE *outputFile = fopen(fileName, "wb");
-    int paddedRowSize = (int)(4 * ceil((float)(imgHeader.width) / 4.0f)) * (imgHeader.bitDepth / 8);
-    fwrite(&imgHeader, sizeof(BMPHeader), 1, outputFile);
-    fseek(outputFile, imgHeader.dataOffset, SEEK_SET);
-
-    char *paddingBytes = (char *)calloc(paddedRowSize, 1);
-    for (i = 0; i < imgHeader.height; i++)
-    {
-        memcpy(paddingBytes, &pixels[/*pixelOffset*/ (i * imgHeader.width)], imgHeader.height * sizeof(PixelRGB));
-        fwrite(paddingBytes, 1, paddedRowSize, outputFile);
+    if (!outputFile) {
+        fprintf(stderr, "Error: could not open file for writing: %s\n", fileName);
+        return;
     }
-    free(paddingBytes);
+    if (!image || !image->pixels) {
+        fprintf(stderr, "Error: invalid image data\n");
+        fclose(outputFile);
+        return;
+    }
+
+    fwrite(&image->metadata, sizeof(BMPHeader), 1, outputFile);
+
+    size_t pixelArraySize = calculatePitch(&image->metadata) * image->metadata.height;
+    fwrite(image->pixels, pixelArraySize, 1, outputFile);
+
     fclose(outputFile);
+}
+
+void BMPM_freeImage(ImageBMP *image) {
+    if (image) {
+        if (image->pixels) {
+            free(image->pixels);
+        }
+        free(image);
+    }
 }
 
 

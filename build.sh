@@ -9,7 +9,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 CC=gcc
-CFLAGS="-Wall -Wextra -std=c99 -g -O2 -Wno-sign-compare -Wno-missing-braces"
+CFLAGS="-Wall -Wextra -std=c99 -g -O2 -Wno-sign-compare -Wno-missing-braces "
 LDFLAGS="-lm"
 EXECUTABLE="bmp_manipulator"
 BINDIR="src/bin"

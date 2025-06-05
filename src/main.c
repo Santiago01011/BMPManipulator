@@ -26,7 +26,7 @@ SDL_Renderer *renderer = NULL;
 short finalAngleAfterRotation;
 AnimationState currentAnimationState = ANIMATION_STATE_NONE;
 
-ImageBMP originalImageBMP = {0};
+ImageBMP *originalImageBMP = NULL;
 
 char filePathBuffer[256] = "Insert here the path to the image";
 bool isFilePathInputFocused = false;
@@ -38,7 +38,7 @@ void HandleClayErrors(Clay_ErrorData errorData){
 
 void normalizePath(){
     if (filePathBuffer == NULL || filePathBuffer[0] == '\0') return;
-    char* aux = filePathBuffer;
+    //char* aux = filePathBuffer;
     if (strchr(filePathBuffer, '\"') != NULL){
         size_t len = strlen(filePathBuffer);
         if(filePathBuffer[0] == '\"' && len > 1)
@@ -108,14 +108,14 @@ int main(int argc, char *argv[]){
     void *memoryBuffer = malloc(totalMemorySize);
 
     //Load an default image
-    if (!chargeTexture("resources/noImage.bmp")) {
-        puts("Failed to load default image.");
-        //free(memoryBuffer);
-        //goto quit;
-    }
-    else {
-        puts("Default image loaded successfully.");
-    }
+     if (!chargeTexture("resources/noImage.bmp")) {
+         puts("Failed to load default image.");
+         //free(memoryBuffer);
+         //goto quit;
+     }
+     else {
+         puts("Default image loaded successfully.");
+     }
     // Initialize Clay with current window dimensions
     int windowWidth = 0, windowHeight = 0;
     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
@@ -208,30 +208,30 @@ int main(int argc, char *argv[]){
         Clay_RenderCommandArray renderCommands = CreateLayout();
 
         // /*this is for animation control*/
-        // switch(currentAnimationState) {
-        //     case ANIMATION_STATE_ROTATING_RIGHT:
-        //         if(finalAngleAfterRotation > 0) {
-        //             metadata.angle += 5;
-        //             finalAngleAfterRotation -=5;
-        //             if(metadata.angle >= 360)
-        //                 metadata.angle = 0;
-        //         } else {
-        //             currentAnimationState = ANIMATION_STATE_NONE;
-        //         }
-        //         break;
-        //     case ANIMATION_STATE_ROTATING_LEFT:
-        //         if(finalAngleAfterRotation < 0){
-        //             metadata.angle -= 5;
-        //             finalAngleAfterRotation += 5;
-        //             if(metadata.angle <= -360)
-        //                 metadata.angle = 0;
-        //         } else {
-        //             currentAnimationState = ANIMATION_STATE_NONE;
-        //         }
-        //         break;
-        //     default:
-        //         break;
-        // }
+        switch(currentAnimationState) {
+            case ANIMATION_STATE_ROTATING_RIGHT:
+                if(finalAngleAfterRotation > 0) {
+                    originalImageBMP->angle += 5;
+                    finalAngleAfterRotation -=5;
+                    if(originalImageBMP->angle >= 360)
+                        originalImageBMP->angle = 0;
+                } else {
+                    currentAnimationState = ANIMATION_STATE_NONE;
+                }
+                break;
+            case ANIMATION_STATE_ROTATING_LEFT:
+                if(finalAngleAfterRotation < 0){
+                    originalImageBMP->angle -= 5;
+                    finalAngleAfterRotation += 5;
+                    if(originalImageBMP->angle <= -360)
+                        originalImageBMP->angle = 0;
+                } else {
+                    currentAnimationState = ANIMATION_STATE_NONE;
+                }
+                break;
+            default:
+                break;
+        }
 
         SDL_SetRenderDrawColor(renderer, 8, 8, 8, 8);
         SDL_RenderClear(renderer);
@@ -242,8 +242,10 @@ int main(int argc, char *argv[]){
 quit:
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    if (originalImageBMP.pixels)
-        free(originalImageBMP.pixels);
+    if (originalImageBMP && originalImageBMP->pixels)
+        BMPM_freeImage(originalImageBMP);
+    if (editing_image)
+        SDL_DestroyTexture(editing_image);        
     if (memoryBuffer)
         free(memoryBuffer);
     IMG_Quit();

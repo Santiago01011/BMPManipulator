@@ -165,7 +165,7 @@ static void SDL_RenderCornerBorder(SDL_Renderer *renderer, Clay_BoundingBox* bou
         .a = (Uint8)_color.a,
     };
 
-    float centerX, centerY, outerRadius, clampedRadius, startAngle, borderWidth;
+    float centerX, centerY, outerRadius, /*clampedRadius, */startAngle, borderWidth;
     const float maxRadius = SDL_min(boundingBox->width, boundingBox->height) / 2.0f;
     
     SDL_Vertex vertices[512];
@@ -331,7 +331,7 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 break;
             }
             case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
-                extern BMPHeader metadata;
+                extern ImageBMP *originalImageBMP;
                 SDL_Texture *texture = renderCommand->renderData.image.imageData;
                 SDL_Rect destination = (SDL_Rect){
                     .x = boundingBox.x,
@@ -341,9 +341,10 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 };
 
                 /*This is for my specific use case*/
-                // SDL_RenderCopyEx(renderer, texture, NULL, &destination, metadata.angle, 0, SDL_FLIP_VERTICAL);
+                if(originalImageBMP)
+                    SDL_RenderCopyEx(renderer, texture, NULL, &destination, originalImageBMP->angle, 0, SDL_FLIP_VERTICAL);
                 /*This is more general*/
-                SDL_RenderCopy(renderer, texture, NULL, &destination);
+                //SDL_RenderCopy(renderer, texture, NULL, &destination);
 
                 break;
             }
@@ -351,7 +352,7 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                 Clay_BorderRenderData *config = &renderCommand->renderData.border;
                 SDL_SetRenderDrawColor(renderer, CLAY_COLOR_TO_SDL_COLOR_ARGS(config->color));
 
-                if(boundingBox.width > 0 & boundingBox.height > 0){
+                if((boundingBox.width > 0) & (boundingBox.height > 0)) {
                     const float maxRadius = SDL_min(boundingBox.width, boundingBox.height) / 2.0f;
 
                     if (config->width.left > 0) {
@@ -402,19 +403,19 @@ static void Clay_SDL2_Render(SDL_Renderer *renderer, Clay_RenderCommandArray ren
                     }
     
                     //corner index: 0->3 topLeft -> CW -> bottonLeft
-                    if (config->width.top > 0 & config->cornerRadius.topLeft > 0) {
+                    if ((config->width.top > 0) & (config->cornerRadius.topLeft > 0)) {
                         SDL_RenderCornerBorder(renderer, &boundingBox, config, 0, config->color);
                     }
 
-                    if (config->width.top > 0 & config->cornerRadius.topRight> 0) {
+                    if ((config->width.top > 0) & (config->cornerRadius.topRight> 0)) {
                         SDL_RenderCornerBorder(renderer, &boundingBox, config, 1, config->color);
                     }
 
-                    if (config->width.bottom > 0 & config->cornerRadius.bottomRight > 0) {
+                    if ((config->width.bottom > 0) & (config->cornerRadius.bottomRight > 0)) {
                         SDL_RenderCornerBorder(renderer, &boundingBox, config, 2, config->color);
                     }
 
-                    if (config->width.bottom > 0 & config->cornerRadius.bottomLeft > 0) {
+                    if ((config->width.bottom > 0) & (config->cornerRadius.bottomLeft > 0)) {
                         SDL_RenderCornerBorder(renderer, &boundingBox, config, 3, config->color);
                     }
                 }
