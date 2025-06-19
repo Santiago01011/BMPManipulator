@@ -32,12 +32,10 @@ To get started with BMPM, you will need to follow these steps:
 
 ### Usage
 
-Upon running BMPM, you will be presented with a simple user interface that allows you to load a BMP image file and perform basic image manipulations.  The interface includes buttons for simple editing operations, such as rotating the image left or right.
+Upon running BMPM, you will be presented with a simple user interface that allows you to load a BMP image file and perform basic image manipulations. The interface includes buttons for simple editing operations, such as rotating the image left or right.
 
 ### Prerequisites
 
 *   **SDL2 Library:** You need both the SDL2 runtime library and development headers. Installation instructions vary by operating system. Refer to the [SDL2 website](https://www.libsdl.org/download-2.0.php).
 *   **SDL2\_ttf Library:**  Likely required by the Clay UI library for font rendering.  Install both runtime and development headers. See [SDL2\_ttf documentation](https://www.libsdl.org/projects/SDL_ttf/).
 *   **C Compiler:** You will need a C compiler toolchain, such as GCC (for Linux/macOS/MinGW on Windows), Clang, or Microsoft Visual C++ (MSVC) Build Tools.
-*   **Build System (Optional):** While not strictly required, using a build system like CMake can simplify the build process, especially for cross-platform projects.  Alternatively, you can use an IDE like CodeBlocks which often manages the build process.
-
